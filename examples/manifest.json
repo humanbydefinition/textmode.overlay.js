@@ -1,0 +1,32 @@
+{
+	"version": 1,
+	"description": "DOM target overlay examples for textmode.js",
+	"groups": [
+		{
+			"name": "OverlayPlugin",
+			"description": "Canvas and video binding, target replacement, and output visibility",
+			"examples": [
+				{
+					"title": "OverlayPlugin.canvas",
+					"sourceFile": "examples/OverlayPlugin/canvas/sketch.js",
+					"status": "good"
+				},
+				{
+					"title": "OverlayPlugin.video",
+					"sourceFile": "examples/OverlayPlugin/video/sketch.js",
+					"status": "good"
+				},
+				{
+					"title": "OverlayPlugin.retarget",
+					"sourceFile": "examples/OverlayPlugin/retarget/sketch.js",
+					"status": "good"
+				},
+				{
+					"title": "OverlayPlugin.visibility",
+					"sourceFile": "examples/OverlayPlugin/visibility/sketch.js",
+					"status": "good"
+				}
+			]
+		}
+	]
+}

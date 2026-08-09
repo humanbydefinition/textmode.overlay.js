@@ -1,0 +1,93 @@
+{
+	"name": "textmode.overlay.js",
+	"version": "1.0.0",
+	"description": "DOM overlay target plugin for textmode.js",
+	"type": "module",
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": "^24.0.0",
+			"onFail": "error"
+		},
+		"packageManager": {
+			"name": "npm",
+			"version": "^11.0.0",
+			"onFail": "error"
+		}
+	},
+	"main": "./dist/textmode.overlay.umd.js",
+	"module": "./dist/textmode.overlay.esm.js",
+	"types": "./dist/types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/textmode.overlay.esm.js",
+			"require": "./dist/textmode.overlay.umd.js"
+		}
+	},
+	"sideEffects": [
+		"./dist/textmode.overlay.esm.js",
+		"./dist/textmode.overlay.umd.js"
+	],
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"dev": "textmode-build dev --port 5180 --host",
+		"build:bundle": "textmode-build build",
+		"build:types": "textmode-types build",
+		"build": "npm run build:bundle && npm run build:types",
+		"check": "textmode-release check",
+		"docs:links:add": "textmode-docs links add",
+		"docs:api:check": "textmode-docs api-check",
+		"docs:check": "textmode-docs check",
+		"docs:dev": "textmode-docs watch",
+		"docs:build": "textmode-docs build",
+		"preview": "textmode-build preview",
+		"format": "textmode-lint format",
+		"format:check": "textmode-lint format:check",
+		"typecheck": "textmode-types check",
+		"types:verify": "textmode-types verify",
+		"lint:markdown": "textmode-lint lint:markdown",
+		"lint:markdown:fix": "textmode-lint lint:markdown --fix",
+		"lint": "textmode-lint lint src",
+		"prepare": "textmode-release hooks",
+		"prepack": "textmode-release prepack",
+		"release": "textmode-release release",
+		"test": "textmode-build test",
+		"test:watch": "textmode-build test:watch"
+	},
+	"peerDependencies": {
+		"textmode.js": ">=0.18.0 <0.19.0"
+	},
+	"devDependencies": {
+		"@textmode/build": "^0.1.0",
+		"@textmode/docs": "^0.3.0",
+		"@textmode/lint": "^0.1.0",
+		"@textmode/release": "^0.1.0",
+		"@textmode/tsconfig": "^0.2.0",
+		"@types/node": "^24.0.0",
+		"textmode.js": "file:../textmode.js-dev",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.10"
+	},
+	"keywords": [
+		"ascii",
+		"textmode",
+		"canvas",
+		"video",
+		"overlay",
+		"creative-coding"
+	],
+	"author": "humanbydefinition <hello@textmode.art> (https://code.textmode.art)",
+	"license": "MIT",
+	"homepage": "https://code.textmode.art",
+	"prettier": "@textmode/lint/prettier",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/humanbydefinition/textmode.overlay.js.git"
+	},
+	"bugs": {
+		"url": "https://github.com/humanbydefinition/textmode.overlay.js/issues"
+	}
+}

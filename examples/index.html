@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>textmode.overlay.js - examples</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="./styles/index.css" />
+	</head>
+
+	<body>
+		<div class="examples-page">
+			<header class="examples-header">
+				<div class="examples-header-primary">
+					<div class="examples-brand">
+						<h1>textmode.overlay.js</h1>
+						<p>// sample below, render above</p>
+					</div>
+					<div class="examples-header-controls">
+						<nav class="examples-header-links" aria-label="Project links">
+							<a
+								class="examples-header-link"
+								href="https://github.com/humanbydefinition/textmode.overlay.js"
+								target="_blank"
+								rel="noopener noreferrer"
+								>github</a
+							>
+							<a
+								class="examples-header-link"
+								href="https://code.textmode.art"
+								target="_blank"
+								rel="noopener noreferrer"
+								>docs</a
+							>
+						</nav>
+						<label class="examples-search" for="search">
+							<span class="examples-search-icon" aria-hidden="true">/</span>
+							<input
+								id="search"
+								type="text"
+								placeholder="filter examples..."
+								autocomplete="off"
+								spellcheck="false"
+							/>
+						</label>
+					</div>
+				</div>
+			</header>
+
+			<main id="examples" class="examples-browser" data-manifest="./manifest.json"></main>
+
+			<footer class="examples-footer">
+				<p class="examples-footer-label">
+					<a
+						href="https://github.com/humanbydefinition/textmode.overlay.js"
+						target="_blank"
+						rel="noopener noreferrer"
+						>textmode.overlay.js</a
+					>
+					-
+					<a
+						href="https://github.com/humanbydefinition/textmode.overlay.js/blob/main/LICENSE"
+						target="_blank"
+						rel="noopener noreferrer"
+						>MIT license</a
+					>
+				</p>
+			</footer>
+		</div>
+
+		<script type="module" src="./scripts/gallery/main.js"></script>
+	</body>
+</html>
