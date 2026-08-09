@@ -52,34 +52,6 @@ t.draw(() => {
 
 `setTarget()` is synchronous and can run immediately after `textmode.create()`. The returned `TextmodeTexture` supports the normal character, color, conversion, and transform settings.
 
-## Controller
-
-```ts
-interface TextmodeOverlayController {
-	readonly target: HTMLCanvasElement | HTMLVideoElement | undefined;
-	readonly source: TextmodeTexture | undefined;
-
-	setTarget(target: HTMLCanvasElement | HTMLVideoElement): TextmodeTexture;
-	clearTarget(): void;
-	show(): void;
-	hide(): void;
-	toggle(): void;
-	isVisible(): boolean;
-}
-```
-
-- Rebinding the same target preserves its texture and schedules a geometry check.
-- Rebinding another target disposes the previous texture and observers first.
-- `clearTarget()` and plugin uninstall restore the output canvas's original DOM location and modified inline styles.
-- Hiding affects only the output canvas. The sketch and source capture continue.
-- Pointer events remain enabled on the output. For click-through interaction, set `t.canvas.style.pointerEvents = 'none'` after binding.
-- Canvas backing dimensions and video intrinsic dimensions are used when layout reports a zero-sized target.
-- Disconnected targets are watched until they are mounted.
-
-Geometry synchronization coalesces target resize, captured scroll, window resize, video metadata/resize, and post-draw notifications into one animation frame. It compares rounded geometry before resizing core framebuffers, avoiding observer feedback loops and redundant GPU work.
-
-Axis-aligned positioning and scaling are supported. Rotated or skewed CSS targets are rejected in version 1 because a sibling canvas cannot reproduce arbitrary transformed geometry without approximation.
-
 ## Migration from core overlay mode
 
 | Before                              | After                                                             |
@@ -90,10 +62,6 @@ Axis-aligned positioning and scaling are supported. Rotated or skewed CSS target
 | Built-in availability               | Install/import `textmode.overlay.js`                              |
 
 The core `BLEND_OVERLAY` layer blend mode and built-in loading/error displays are unrelated and remain in `textmode.js`.
-
-## Browser script
-
-The UMD bundle exposes both `textmodeOverlay.OverlayPlugin` and `window.OverlayPlugin`.
 
 ## Next steps
 
