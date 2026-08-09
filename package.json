@@ -55,7 +55,9 @@
 		"prepack": "textmode-release prepack",
 		"release": "textmode-release release",
 		"test": "textmode-build test",
-		"test:watch": "textmode-build test:watch"
+		"test:watch": "textmode-build test:watch",
+		"test:unit": "textmode-build test --project unit",
+		"test:integration": "textmode-build test --project integration"
 	},
 	"peerDependencies": {
 		"textmode.js": ">=0.18.0 <0.19.0"

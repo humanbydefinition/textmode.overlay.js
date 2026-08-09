@@ -1,3 +1,5 @@
-dist
-api
-package-lock.json
+# Markdown and shader files use dedicated tooling or hand-maintained formatting.
+**/*.md
+**/*.frag
+**/*.vert
+**/*.glsl
