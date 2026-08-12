@@ -66,7 +66,7 @@ function createHarness(): Harness {
 	let postDraw = (): void => undefined;
 	const unregister = vi.fn();
 	const context = {
-		registerPostDrawHook(callback: () => void) {
+		on(_hook: 'postDraw', callback: () => void) {
 			postDraw = callback;
 			return unregister;
 		},

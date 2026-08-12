@@ -63,7 +63,7 @@ export class TextmodeOverlayControllerImpl implements TextmodeOverlayController 
 		this._originalParent = this._output.parentNode;
 		this._originalNextSibling = this._output.nextSibling;
 		this._originalStyle = snapshotStyle(this._output);
-		this._unregisterPostDraw = context.registerPostDrawHook(this._scheduleFromEvent);
+		this._unregisterPostDraw = context.on('postDraw', this._scheduleFromEvent);
 	}
 
 	public get target(): TextmodeOverlayTarget | undefined {

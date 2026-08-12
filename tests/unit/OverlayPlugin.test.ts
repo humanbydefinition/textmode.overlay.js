@@ -9,7 +9,7 @@ describe('OverlayPlugin', () => {
 		const textmodifier = { canvas: output } as Textmodifier;
 		let descriptor: TextmodeExtensionDescriptor<Textmodifier> | undefined;
 		const context = {
-			registerPostDrawHook: vi.fn(() => vi.fn()),
+			on: vi.fn(() => vi.fn()),
 			defineExtension: vi.fn((_target, _name, value) => {
 				descriptor = value as TextmodeExtensionDescriptor<Textmodifier>;
 				return vi.fn();
@@ -30,7 +30,7 @@ describe('OverlayPlugin', () => {
 		const unregister = vi.fn();
 		let controller: { isVisible(): boolean } | undefined;
 		const context = {
-			registerPostDrawHook: vi.fn(() => unregister),
+			on: vi.fn(() => unregister),
 			defineExtension: vi.fn((_target, _name, descriptor) => {
 				controller = descriptor.get();
 				return vi.fn();
