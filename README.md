@@ -52,7 +52,7 @@ t.draw(() => {
 
 `setTarget()` is synchronous and can run immediately after `textmode.create()`. The returned `TextmodeTexture` supports the normal character, color, conversion, and transform settings.
 
-### Migration from core overlay mode
+## Migration from core overlay mode
 
 In `textmode.js` 0.18, the built-in `{ overlay: true }` target-overlay mode was extracted into this add-on. Use the table below to update an existing sketch.
 
