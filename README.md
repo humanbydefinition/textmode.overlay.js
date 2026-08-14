@@ -9,9 +9,9 @@
 
 </div>
 
-`textmode.overlay.js` is the official target-overlay add-on for [`textmode.js`](https://github.com/humanbydefinition/textmode.js) 0.18.x. It samples a live canvas or video through the core texture API, places the core-owned output canvas directly above that target, and keeps their geometry synchronized.
+`textmode.overlay.js` is the official target-overlay add-on for [`textmode.js`](https://github.com/humanbydefinition/textmode.js), giving a live canvas or video element a textmode twin. The output canvas renders directly on top of the target and stays pinned there through resizes, scrolling, and window changes — so the textmode view tracks the element as the page moves.
 
-The package has no runtime dependencies. `textmode.js` is a peer dependency.
+Bind a target once with `t.overlay.setTarget()`, then sample it with the same character, color, conversion, and transform settings as any other source. Show, hide, or toggle the overlay independently while drawing continues, retarget freely between elements, or leave a target detached until it mounts - the add-on owns the geometry and DOM lifecycle so you can focus on the composition.
 
 ## Features
 
@@ -52,16 +52,16 @@ t.draw(() => {
 
 `setTarget()` is synchronous and can run immediately after `textmode.create()`. The returned `TextmodeTexture` supports the normal character, color, conversion, and transform settings.
 
-## Migration from core overlay mode
+### Migration from core overlay mode
 
-| Before                              | After                                                             |
-| ----------------------------------- | ----------------------------------------------------------------- |
-| `{ canvas: target, overlay: true }` | `{ plugins: [OverlayPlugin] }` then `t.overlay.setTarget(target)` |
-| `t.overlay` as the sampled image    | `t.overlay.source` as the sampled `TextmodeTexture`               |
-| Core-owned target following         | Add-on-owned controller lifecycle                                 |
-| Built-in availability               | Install/import `textmode.overlay.js`                              |
+In `textmode.js` 0.18, the built-in `{ overlay: true }` target-overlay mode was extracted into this add-on. Use the table below to update an existing sketch.
 
-The core `BLEND_OVERLAY` layer blend mode and built-in loading/error displays are unrelated and remain in `textmode.js`.
+| Before | After |
+| --- | --- |
+| `textmode.create({ canvas: target, overlay: true })` | `textmode.create({ plugins: [OverlayPlugin] })` |
+| `t.overlay` as the sampled image | `t.overlay.setTarget(target)`; read the sampled `TextmodeTexture` from `t.overlay.source` |
+| Target following owned by core | Controller lifecycle owned by the add-on |
+| Available without installing anything | Install and import `textmode.overlay.js` |
 
 ## Next steps
 
