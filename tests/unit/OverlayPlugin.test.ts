@@ -43,4 +43,41 @@ describe('OverlayPlugin', () => {
 		expect(unregister).toHaveBeenCalledOnce();
 		expect(() => controller?.isVisible()).toThrow('controller has been disposed');
 	});
+
+	it('translates postDraw into a coalesced controller synchronization request', () => {
+		const output = document.createElement('canvas');
+		const target = document.createElement('canvas');
+		const texture = { dispose: vi.fn() };
+		const textmodifier = {
+			canvas: output,
+			createTexture: vi.fn(() => texture),
+			resizeCanvas: vi.fn(),
+		} as unknown as Textmodifier;
+		let postDraw: (() => void) | undefined;
+		const context = {
+			on: vi.fn((_hook, callback: () => void) => {
+				postDraw = callback;
+				return vi.fn();
+			}),
+			defineExtension: vi.fn((_target, _name, descriptor) => descriptor),
+		} as unknown as TextmodePluginContext;
+		let frame: FrameRequestCallback | undefined;
+		const requestAnimationFrame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+			frame = callback;
+			return 1;
+		});
+		document.body.append(target);
+
+		OverlayPlugin.install(textmodifier, context);
+		const controller = (context.defineExtension as ReturnType<typeof vi.fn>).mock.calls[0][2].get();
+		controller.setTarget(target);
+		frame?.(performance.now());
+		requestAnimationFrame.mockClear();
+
+		postDraw?.();
+		postDraw?.();
+
+		expect(requestAnimationFrame).toHaveBeenCalledOnce();
+		OverlayPlugin.uninstall?.(textmodifier, context);
+	});
 });

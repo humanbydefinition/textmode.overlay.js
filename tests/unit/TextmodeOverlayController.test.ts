@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TextmodePluginContext, TextmodeTexture, Textmodifier } from 'textmode.js';
-import { TextmodeOverlayControllerImpl } from '../../src/TextmodeOverlayController';
+import type { TextmodeTexture, Textmodifier } from 'textmode.js';
+import { TextmodeOverlayControllerImpl } from '../../src/runtime/TextmodeOverlayController';
 
 class ResizeObserverDouble {
 	public static instances: ResizeObserverDouble[] = [];
@@ -22,7 +22,6 @@ type Harness = {
 	createTexture: ReturnType<typeof vi.fn>;
 	resizeCanvas: ReturnType<typeof vi.fn>;
 	postDraw: () => void;
-	unregister: ReturnType<typeof vi.fn>;
 };
 
 let rafCallbacks: FrameRequestCallback[];
@@ -63,15 +62,7 @@ function createHarness(): Harness {
 	const createTexture = vi.fn(() => texture);
 	const resizeCanvas = vi.fn();
 	const textmodifier = { canvas: output, createTexture, resizeCanvas } as unknown as Textmodifier;
-	let postDraw = (): void => undefined;
-	const unregister = vi.fn();
-	const context = {
-		on(_hook: 'postDraw', callback: () => void) {
-			postDraw = callback;
-			return unregister;
-		},
-	} as unknown as TextmodePluginContext;
-	const controller = new TextmodeOverlayControllerImpl(textmodifier, context);
+	const controller = new TextmodeOverlayControllerImpl(textmodifier);
 	activeControllers.push(controller);
 	return {
 		controller,
@@ -80,8 +71,7 @@ function createHarness(): Harness {
 		texture,
 		createTexture,
 		resizeCanvas,
-		postDraw: () => postDraw(),
-		unregister,
+		postDraw: () => controller.requestSynchronization(),
 	};
 }
 
@@ -356,7 +346,6 @@ describe('TextmodeOverlayController', () => {
 		harness.controller.dispose();
 
 		expect(harness.texture.dispose).toHaveBeenCalledTimes(1);
-		expect(harness.unregister).toHaveBeenCalledTimes(1);
 		expect(() => harness.controller.isVisible()).toThrow('controller has been disposed');
 		expect(() => harness.controller.clearTarget()).toThrow('controller has been disposed');
 		expect(() => harness.controller.target).toThrow('controller has been disposed');
