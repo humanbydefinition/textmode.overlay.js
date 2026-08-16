@@ -11,6 +11,8 @@ const installations = new WeakMap<Textmodifier, OverlayInstallation>();
 /**
  * Installs an isolated overlay controller on each textmode.js instance.
  *
+ * @category Workflow
+ *
  * @example
  * ```ts
  * const t = textmode.create({ plugins: [OverlayPlugin] });
