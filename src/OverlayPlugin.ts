@@ -22,7 +22,7 @@ const installations = new WeakMap<Textmodifier, OverlayInstallation>();
  * @see {@link https://code.textmode.art/api/textmode.overlay.js/variables/OverlayPlugin | OverlayPlugin API reference}
  */
 export const OverlayPlugin: TextmodePlugin = {
-	name: 'textmode.overlay',
+	name: packageMetadata.name,
 	version: packageMetadata.version,
 
 	install(textmodifier, context) {

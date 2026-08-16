@@ -18,7 +18,7 @@ describe('OverlayPlugin', () => {
 
 		OverlayPlugin.install(textmodifier, context);
 
-		expect(OverlayPlugin.name).toBe('textmode.overlay');
+		expect(OverlayPlugin.name).toBe(packageMetadata.name);
 		expect(OverlayPlugin.version).toBe(packageMetadata.version);
 		expect(context.defineExtension).toHaveBeenCalledWith('textmodifier', 'overlay', expect.any(Object));
 		expect(descriptor?.get?.call(textmodifier)).toBeDefined();
