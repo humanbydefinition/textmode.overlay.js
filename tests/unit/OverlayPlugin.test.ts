@@ -16,7 +16,7 @@ describe('OverlayPlugin', () => {
 			}),
 		} as unknown as TextmodePluginContext;
 
-		const cleanup = OverlayPlugin.install(textmodifier, context) as unknown as (() => void) | undefined;
+		const cleanup = OverlayPlugin.install(textmodifier, context);
 
 		expect(OverlayPlugin.name).toBe(packageMetadata.name);
 		expect(context.defineExtension).toHaveBeenCalledWith('textmodifier', 'overlay', expect.any(Object));
@@ -37,7 +37,7 @@ describe('OverlayPlugin', () => {
 				return vi.fn();
 			}),
 		} as unknown as TextmodePluginContext;
-		const cleanup = OverlayPlugin.install(textmodifier, context) as unknown as (() => void) | undefined;
+		const cleanup = OverlayPlugin.install(textmodifier, context);
 
 		cleanup?.();
 
@@ -69,7 +69,7 @@ describe('OverlayPlugin', () => {
 		});
 		document.body.append(target);
 
-		const cleanup = OverlayPlugin.install(textmodifier, context) as unknown as (() => void) | undefined;
+		const cleanup = OverlayPlugin.install(textmodifier, context);
 		const controller = (context.defineExtension as ReturnType<typeof vi.fn>).mock.calls[0][2].get();
 		controller.setTarget(target);
 		frame?.(performance.now());
