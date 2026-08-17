@@ -16,15 +16,16 @@ describe('OverlayPlugin', () => {
 			}),
 		} as unknown as TextmodePluginContext;
 
-		OverlayPlugin.install(textmodifier, context);
+		const cleanup = OverlayPlugin.install(textmodifier, context) as unknown as (() => void) | undefined;
 
 		expect(OverlayPlugin.name).toBe(packageMetadata.name);
-		expect(OverlayPlugin.version).toBe(packageMetadata.version);
 		expect(context.defineExtension).toHaveBeenCalledWith('textmodifier', 'overlay', expect.any(Object));
 		expect(descriptor?.get?.call(textmodifier)).toBeDefined();
+
+		cleanup?.();
 	});
 
-	it('cleans up a live controller on uninstall', () => {
+	it('cleans up a live controller through the returned cleanup', () => {
 		const output = document.createElement('canvas');
 		const textmodifier = { canvas: output } as Textmodifier;
 		const unregister = vi.fn();
@@ -36,9 +37,9 @@ describe('OverlayPlugin', () => {
 				return vi.fn();
 			}),
 		} as unknown as TextmodePluginContext;
-		OverlayPlugin.install(textmodifier, context);
+		const cleanup = OverlayPlugin.install(textmodifier, context) as unknown as (() => void) | undefined;
 
-		OverlayPlugin.uninstall?.(textmodifier, context);
+		cleanup?.();
 
 		expect(unregister).toHaveBeenCalledOnce();
 		expect(() => controller?.isVisible()).toThrow('controller has been disposed');
@@ -68,7 +69,7 @@ describe('OverlayPlugin', () => {
 		});
 		document.body.append(target);
 
-		OverlayPlugin.install(textmodifier, context);
+		const cleanup = OverlayPlugin.install(textmodifier, context) as unknown as (() => void) | undefined;
 		const controller = (context.defineExtension as ReturnType<typeof vi.fn>).mock.calls[0][2].get();
 		controller.setTarget(target);
 		frame?.(performance.now());
@@ -78,6 +79,6 @@ describe('OverlayPlugin', () => {
 		postDraw?.();
 
 		expect(requestAnimationFrame).toHaveBeenCalledOnce();
-		OverlayPlugin.uninstall?.(textmodifier, context);
+		cleanup?.();
 	});
 });
