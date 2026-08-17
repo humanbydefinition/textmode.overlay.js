@@ -1,6 +1,6 @@
 {
 	"name": "textmode.overlay.js",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "DOM overlay target plugin for textmode.js",
 	"type": "module",
 	"devEngines": {
