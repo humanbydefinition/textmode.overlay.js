@@ -52,6 +52,11 @@ export class OverlaySynchronizer {
 		});
 	}
 
+	public synchronizeImmediately(options: { forceResize?: boolean } = {}): void {
+		this._cancelAnimationFrame();
+		this._synchronize(options.forceResize ?? false);
+	}
+
 	public setVisible(visible: boolean): void {
 		this._visible = visible;
 		if (!visible) {
@@ -75,15 +80,16 @@ export class OverlaySynchronizer {
 		this.clear({ restoreCanvas: true });
 	}
 
-	private _synchronize(): void {
+	private _synchronize(forceResize: boolean = false): void {
 		const target = this._target;
 		if (!target || !this._insertWhenPossible()) return;
 
 		const geometry = measureOverlayGeometry(target, this._output);
-		if (!geometry || sameGeometry(this._lastGeometry, geometry)) return;
+		if (!geometry || (!forceResize && sameGeometry(this._lastGeometry, geometry))) return;
 
 		const previousGeometry = this._lastGeometry;
 		const sizeChanged =
+			forceResize ||
 			!previousGeometry ||
 			previousGeometry.width !== geometry.width ||
 			previousGeometry.height !== geometry.height;

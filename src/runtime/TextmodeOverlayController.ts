@@ -89,6 +89,16 @@ export class TextmodeOverlayControllerImpl implements TextmodeOverlayController 
 		this._synchronizer.request();
 	}
 
+	/**
+	 * Synchronize target geometry immediately at a host lifecycle boundary.
+	 *
+	 * @internal
+	 */
+	public synchronizeImmediately(options: { forceResize?: boolean } = {}): void {
+		this._assertActive();
+		this._synchronizer.synchronizeImmediately(options);
+	}
+
 	/** Release all plugin-owned resources. */
 	public dispose(): void {
 		if (this._disposed) return;
