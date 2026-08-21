@@ -20,6 +20,9 @@ export const OverlayPlugin: TextmodePlugin = {
 
 	install(textmodifier, context) {
 		const controller = new TextmodeOverlayControllerImpl(textmodifier);
+		const unregisterPreSetup = context.on('preSetup', () =>
+			controller.synchronizeImmediately({ forceResize: true })
+		);
 		const unregisterPostDraw = context.on('postDraw', () => controller.requestSynchronization());
 		try {
 			context.defineExtension('textmodifier', 'overlay', {
@@ -29,11 +32,13 @@ export const OverlayPlugin: TextmodePlugin = {
 			});
 		} catch (error) {
 			controller.dispose();
+			unregisterPreSetup();
 			unregisterPostDraw();
 			throw error;
 		}
 		return () => {
 			controller.dispose();
+			unregisterPreSetup();
 			unregisterPostDraw();
 		};
 	},
