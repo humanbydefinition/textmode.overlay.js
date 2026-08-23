@@ -1,9 +1,7 @@
 import type { TextmodeTexture, Textmodifier } from 'textmode.js';
-import { assertValidTarget } from './OverlayGeometry';
+import { assertValidTarget, ERROR_PREFIX } from './OverlayGeometry';
 import { OverlaySynchronizer } from './OverlaySynchronizer';
 import type { TextmodeOverlayController, TextmodeOverlayTarget } from '../types';
-
-const ERROR_PREFIX = '[textmode.overlay.js]';
 
 /** @internal */
 export class TextmodeOverlayControllerImpl implements TextmodeOverlayController {
