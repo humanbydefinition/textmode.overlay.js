@@ -4,20 +4,7 @@ import {
 	measureOverlayGeometry,
 	assertValidTarget,
 } from '../../src/runtime/OverlayGeometry';
-
-function rect(left: number, top: number, width: number, height: number): DOMRect {
-	return {
-		left,
-		top,
-		width,
-		height,
-		right: left + width,
-		bottom: top + height,
-		x: left,
-		y: top,
-		toJSON: () => ({}),
-	};
-}
+import { rect } from '../helpers/dom';
 
 describe('OverlayGeometry', () => {
 	describe('assertAxisAlignedTransform', () => {

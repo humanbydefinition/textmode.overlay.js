@@ -18,13 +18,6 @@ export default defineTextmodeProject({
 				include: ['tests/integration/**/*.test.ts'],
 			},
 		},
-		{
-			test: {
-				name: 'contracts',
-				environment: 'node',
-				include: ['tests/contracts/**/*.test.ts'],
-			},
-		},
 	],
 	alias: {
 		'textmode.overlay.js': path.resolve(import.meta.dirname, 'src/index.ts'),

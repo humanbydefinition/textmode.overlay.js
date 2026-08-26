@@ -24,12 +24,11 @@
  */
 
 import './augmentations';
-
-export { OverlayPlugin } from './OverlayPlugin';
-export type { TextmodeOverlayController, TextmodeOverlayTarget } from './types';
-
-import { OverlayPlugin } from './OverlayPlugin';
 import type { TextmodePlugin } from 'textmode.js';
+import { OverlayPlugin } from './OverlayPlugin';
+
+export { OverlayPlugin };
+export type { TextmodeOverlayController, TextmodeOverlayTarget } from './types';
 
 declare global {
 	interface Window {

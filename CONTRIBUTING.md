@@ -23,5 +23,4 @@ Read the [Code of Conduct](CODE_OF_CONDUCT.md). Report vulnerabilities privately
 [SECURITY.md](SECURITY.md), not through a public issue.
 
 Need help? [Open an issue](https://github.com/humanbydefinition/textmode.overlay.js/issues), read the
-[API reference](https://code.textmode.art/api/textmode.overlay.js/), or
-[join Discord](https://discord.gg/sjrw8QXNks).
+[API reference](https://code.textmode.art/api/textmode.overlay.js/).
