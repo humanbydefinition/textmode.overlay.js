@@ -1,4 +1,4 @@
-import type { TextmodeOverlayTarget } from '../types';
+import type { TextmodeOverlayPointerEvents, TextmodeOverlayTarget } from '../types';
 import { measureOutputCoordinateSpace, measureTargetGeometry, projectGeometry, sameGeometry } from './OverlayGeometry';
 import type { OverlayGeometry } from './OverlayGeometry';
 
@@ -17,6 +17,7 @@ export class OverlaySynchronizer {
 
 	private _target: TextmodeOverlayTarget | undefined;
 	private _visible = true;
+	private _pointerEvents: TextmodeOverlayPointerEvents = 'none';
 	private _resizeObserver: ResizeObserver | undefined;
 	private _mountObserver: MutationObserver | undefined;
 	private _isObserving = false;
@@ -34,9 +35,10 @@ export class OverlaySynchronizer {
 		this._originalStyle = snapshotStyle(output);
 	}
 
-	public bind(target: TextmodeOverlayTarget, visible: boolean): void {
+	public bind(target: TextmodeOverlayTarget, visible: boolean, pointerEvents: TextmodeOverlayPointerEvents): void {
 		this._target = target;
 		this._visible = visible;
+		this._pointerEvents = pointerEvents;
 		if (this._insertWhenPossible()) this._observeTarget();
 		this.request();
 	}
@@ -145,7 +147,7 @@ export class OverlaySynchronizer {
 		const targetZIndex = Number.parseFloat(getComputedStyle(target).zIndex);
 		this._setStyle('position', 'absolute');
 		this._setStyle('zIndex', String((Number.isFinite(targetZIndex) ? targetZIndex : 0) + 1));
-		this._setStyle('pointerEvents', 'auto');
+		this._setStyle('pointerEvents', this._pointerEvents);
 		this._setStyle('display', this._visible ? this._originalStyle.display : 'none');
 		return true;
 	}

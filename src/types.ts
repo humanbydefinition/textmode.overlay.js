@@ -10,6 +10,36 @@ import type { TextmodeTexture } from 'textmode.js';
 export type TextmodeOverlayTarget = HTMLCanvasElement | HTMLVideoElement;
 
 /**
+ * Pointer-event policy for the output canvas.
+ *
+ * Overlays default to `'none'` so page interaction continues through them;
+ * opt into `'auto'` when the overlay itself must receive pointer input.
+ *
+ * @category Target types
+ *
+ * @see {@link https://code.textmode.art/api/textmode.overlay.js/type-aliases/TextmodeOverlayPointerEvents | TextmodeOverlayPointerEvents API reference}
+ */
+export type TextmodeOverlayPointerEvents = 'auto' | 'none';
+
+/**
+ * Options accepted when binding a target.
+ *
+ * @category Target binding
+ *
+ * @see {@link https://code.textmode.art/api/textmode.overlay.js/interfaces/TextmodeOverlaySetTargetOptions | TextmodeOverlaySetTargetOptions API reference}
+ */
+export interface TextmodeOverlaySetTargetOptions {
+	/**
+	 * Pointer-event policy applied to the output canvas.
+	 *
+	 * @default 'none'
+	 *
+	 * @see {@link https://code.textmode.art/api/textmode.overlay.js/interfaces/TextmodeOverlaySetTargetOptions#pointerevents | pointerEvents API reference}
+	 */
+	pointerEvents?: TextmodeOverlayPointerEvents;
+}
+
+/**
  * Controls the sampled target and DOM alignment for one textmode.js instance.
  *
  * The controller never owns the output canvas. Clearing or uninstalling the plugin
@@ -53,6 +83,7 @@ export interface TextmodeOverlayController {
 	 * @category Target binding
 	 *
 	 * @param target Canvas or video to sample.
+	 * @param options Binding options, including the output canvas pointer-event policy.
 	 * @returns The configurable texture source.
 	 *
 	 * @example
@@ -63,7 +94,7 @@ export interface TextmodeOverlayController {
 	 *
 	 * @see {@link https://code.textmode.art/api/textmode.overlay.js/interfaces/TextmodeOverlayController#settarget | TextmodeOverlayController.setTarget API reference}
 	 */
-	setTarget(target: TextmodeOverlayTarget): TextmodeTexture;
+	setTarget(target: TextmodeOverlayTarget, options?: TextmodeOverlaySetTargetOptions): TextmodeTexture;
 
 	/**
 	 * Stop sampling and restore the output canvas.

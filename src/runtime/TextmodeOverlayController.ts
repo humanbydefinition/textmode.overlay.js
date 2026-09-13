@@ -1,7 +1,7 @@
 import type { TextmodeTexture, Textmodifier } from 'textmode.js';
 import { assertValidTarget, ERROR_PREFIX } from './OverlayGeometry';
 import { OverlaySynchronizer } from './OverlaySynchronizer';
-import type { TextmodeOverlayController, TextmodeOverlayTarget } from '../types';
+import type { TextmodeOverlayController, TextmodeOverlaySetTargetOptions, TextmodeOverlayTarget } from '../types';
 
 /** @internal */
 export class TextmodeOverlayControllerImpl implements TextmodeOverlayController {
@@ -32,7 +32,7 @@ export class TextmodeOverlayControllerImpl implements TextmodeOverlayController 
 		return this._source;
 	}
 
-	public setTarget(target: TextmodeOverlayTarget): TextmodeTexture {
+	public setTarget(target: TextmodeOverlayTarget, options: TextmodeOverlaySetTargetOptions = {}): TextmodeTexture {
 		this._assertActive();
 		assertValidTarget(target, this._output);
 
@@ -44,7 +44,7 @@ export class TextmodeOverlayControllerImpl implements TextmodeOverlayController 
 		this._releaseBinding(false);
 		this._target = target;
 		this._source = this._textmodifier.createTexture(target);
-		this._synchronizer.bind(target, this._visible);
+		this._synchronizer.bind(target, this._visible, options.pointerEvents ?? 'none');
 		return this._source;
 	}
 
