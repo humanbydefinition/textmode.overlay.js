@@ -6,6 +6,7 @@ import {
 	getRafCallbacks,
 	installAnimationFrameMock,
 	installResizeObserver,
+	mockRenderedRect,
 	rect,
 	ResizeObserverDouble,
 	setRect,
@@ -23,9 +24,10 @@ type Harness = {
 
 let activeControllers: TextmodeOverlayControllerImpl[];
 
-function createHarness(): Harness {
+function createHarness(options: { scaleX?: number; scaleY?: number } = {}): Harness {
 	const output = document.createElement('canvas');
 	output.style.cssText = 'position:relative;left:2px;top:3px;width:40px;height:30px;z-index:7;pointer-events:none';
+	mockRenderedRect(output, options.scaleX, options.scaleY);
 	document.body.append(output);
 
 	const texture = {
@@ -78,12 +80,26 @@ describe('TextmodeOverlayController', () => {
 		expect(target.nextSibling).toBe(harness.output);
 		expect(harness.output.style.position).toBe('absolute');
 		expect(harness.output.style.zIndex).toBe('5');
-		expect(harness.output.style.pointerEvents).toBe('auto');
+		expect(harness.output.style.pointerEvents).toBe('none');
 
 		flushAnimationFrame();
 		expect(harness.resizeCanvas).toHaveBeenCalledWith(320, 180);
 		expect(harness.output.style.left).toBe('10px');
 		expect(harness.output.style.top).toBe('20px');
+	});
+
+	it('defaults the output to pass-through and honors an explicit pointer-events policy', () => {
+		const passThrough = createHarness();
+		const passThroughTarget = document.createElement('canvas');
+		document.body.prepend(passThroughTarget);
+		passThrough.controller.setTarget(passThroughTarget);
+		expect(passThrough.output.style.pointerEvents).toBe('none');
+
+		const interactive = createHarness();
+		const interactiveTarget = document.createElement('video');
+		document.body.prepend(interactiveTarget);
+		interactive.controller.setTarget(interactiveTarget, { pointerEvents: 'auto' });
+		expect(interactive.output.style.pointerEvents).toBe('auto');
 	});
 
 	it('supports video targets and metadata-driven synchronization', () => {
@@ -115,27 +131,18 @@ describe('TextmodeOverlayController', () => {
 		expect(harness.resizeCanvas).toHaveBeenCalledWith(500, 250);
 	});
 
-	it('calculates coordinates relative to the actual nested offset parent', () => {
-		const harness = createHarness();
-		const parent = document.createElement('div');
+	it('compensates for ancestor scale when placing the output', () => {
+		const harness = createHarness({ scaleX: 2, scaleY: 2 });
 		const target = document.createElement('canvas');
-		document.body.prepend(parent);
-		parent.append(target);
-		setRect(parent, rect(20, 10, 800, 600));
-		setRect(target, rect(120, 80, 200, 100));
-		Object.defineProperties(parent, {
-			scrollLeft: { value: 5 },
-			scrollTop: { value: 9 },
-			clientLeft: { value: 2 },
-			clientTop: { value: 3 },
-		});
-		Object.defineProperty(harness.output, 'offsetParent', { value: parent });
+		setRect(target, rect(80, 40, 400, 200));
+		document.body.prepend(target);
 
 		harness.controller.setTarget(target);
 		flushAnimationFrame();
 
-		expect(harness.output.style.left).toBe('103px');
-		expect(harness.output.style.top).toBe('76px');
+		expect(harness.output.style.left).toBe('40px');
+		expect(harness.output.style.top).toBe('20px');
+		expect(harness.resizeCanvas).toHaveBeenCalledWith(200, 100);
 	});
 
 	it('coalesces resize, scroll, observer, and post-draw notifications', () => {

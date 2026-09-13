@@ -5,6 +5,7 @@ import {
 	getRafCallbacks,
 	installAnimationFrameMock,
 	installResizeObserver,
+	mockRenderedRect,
 	rect,
 	ResizeObserverDouble,
 } from '../helpers';
@@ -25,14 +26,18 @@ describe('OverlaySynchronizer', () => {
 		const output = document.createElement('canvas');
 		const target = document.createElement('canvas');
 		const resizeCanvas = vi.fn();
+		output.style.width = '10px';
+		output.style.height = '10px';
+		mockRenderedRect(output);
 		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(rect(10, 20, 320, 180));
 		document.body.append(target, output);
 		const synchronizer = new OverlaySynchronizer(output, resizeCanvas);
 
-		synchronizer.bind(target, true);
+		synchronizer.bind(target, true, 'none');
 
 		expect(target.nextSibling).toBe(output);
 		expect(output.style.position).toBe('absolute');
+		expect(output.style.pointerEvents).toBe('none');
 		expect(resizeCanvas).not.toHaveBeenCalled();
 		flushAnimationFrame();
 
@@ -49,7 +54,7 @@ describe('OverlaySynchronizer', () => {
 		document.body.append(target, output);
 		const synchronizer = new OverlaySynchronizer(output, resizeCanvas);
 
-		synchronizer.bind(target, true);
+		synchronizer.bind(target, true, 'none');
 		synchronizer.request();
 		synchronizer.request();
 		expect(getRafCallbacks()).toHaveLength(1);

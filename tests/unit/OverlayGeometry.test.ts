@@ -1,10 +1,30 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { TextmodeOverlayTarget } from '../../src/types';
 import {
 	assertAxisAlignedTransform,
-	measureOverlayGeometry,
+	measureOutputCoordinateSpace,
+	measureTargetGeometry,
+	projectGeometry,
 	assertValidTarget,
 } from '../../src/runtime/OverlayGeometry';
-import { rect } from '../helpers/dom';
+import { mockRenderedRect, rect } from '../helpers/dom';
+
+function project(target: TextmodeOverlayTarget, output: HTMLCanvasElement) {
+	const targetGeometry = measureTargetGeometry(target);
+	const space = measureOutputCoordinateSpace(output);
+	if (!targetGeometry || !space) return undefined;
+	return projectGeometry(targetGeometry, space);
+}
+
+function createOutput(width: number, height: number, scaleX = 1, scaleY = 1): HTMLCanvasElement {
+	const output = document.createElement('canvas');
+	output.style.width = `${width}px`;
+	output.style.height = `${height}px`;
+	output.style.left = '0px';
+	output.style.top = '0px';
+	mockRenderedRect(output, scaleX, scaleY);
+	return output;
+}
 
 describe('OverlayGeometry', () => {
 	describe('assertAxisAlignedTransform', () => {
@@ -26,31 +46,52 @@ describe('OverlayGeometry', () => {
 		});
 	});
 
+	describe('measureOutputCoordinateSpace', () => {
+		it('derives the ancestor scale and origin from the rendered box', () => {
+			const output = createOutput(100, 50, 2, 3);
+
+			expect(measureOutputCoordinateSpace(output)).toEqual({
+				scaleX: 2,
+				scaleY: 3,
+				originLeft: 0,
+				originTop: 0,
+			});
+		});
+
+		it('returns undefined while the output is not measurable', () => {
+			const output = document.createElement('canvas');
+			output.style.width = '100px';
+			output.style.height = '50px';
+			vi.spyOn(output, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 0, 0));
+
+			expect(measureOutputCoordinateSpace(output)).toBeUndefined();
+		});
+	});
+
 	it('uses intrinsic canvas dimensions when the layout rectangle has no size and rounds geometry', () => {
 		const target = document.createElement('canvas');
-		const output = document.createElement('canvas');
+		const output = createOutput(10, 10);
 		target.width = 640;
 		target.height = 360;
 		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(rect(12.345, 23.456, 0, 0));
 
-		expect(measureOverlayGeometry(target, output)).toEqual({ left: 12.35, top: 23.46, width: 640, height: 360 });
+		expect(project(target, output)).toEqual({ left: 12.35, top: 23.46, width: 640, height: 360 });
 	});
 
-	it('converts target coordinates into a nested offset parent space', () => {
-		const parent = document.createElement('div');
+	it('projects a target into an ancestor-scaled output space', () => {
 		const target = document.createElement('canvas');
-		const output = document.createElement('canvas');
-		vi.spyOn(parent, 'getBoundingClientRect').mockReturnValue(rect(20, 10, 800, 600));
-		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(rect(120, 80, 200, 100));
-		Object.defineProperties(parent, {
-			scrollLeft: { value: 5 },
-			scrollTop: { value: 9 },
-			clientLeft: { value: 2 },
-			clientTop: { value: 3 },
-		});
-		Object.defineProperty(output, 'offsetParent', { value: parent });
+		const output = createOutput(200, 100, 2, 2);
+		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(rect(100, 50, 400, 200));
 
-		expect(measureOverlayGeometry(target, output)).toMatchObject({ left: 103, top: 76, width: 200, height: 100 });
+		expect(project(target, output)).toEqual({ left: 50, top: 25, width: 200, height: 100 });
+	});
+
+	it('supports non-uniform ancestor scales per axis', () => {
+		const target = document.createElement('canvas');
+		const output = createOutput(100, 100, 2, 4);
+		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(rect(200, 400, 400, 800));
+
+		expect(project(target, output)).toEqual({ left: 100, top: 100, width: 200, height: 200 });
 	});
 
 	it('validates target kind and rejects using the output canvas as its own target', () => {
