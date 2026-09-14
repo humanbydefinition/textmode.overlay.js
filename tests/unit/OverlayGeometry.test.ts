@@ -28,20 +28,28 @@ function createOutput(width: number, height: number, scaleX = 1, scaleY = 1): HT
 
 describe('OverlayGeometry', () => {
 	describe('assertAxisAlignedTransform', () => {
-		it.each(['none', 'matrix(1, 0, 0, 1, 12, 24)', 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 12, 24, 0, 1)'])(
-			'accepts %s',
-			(transform) => {
-				expect(() => assertAxisAlignedTransform(transform)).not.toThrow();
-			}
-		);
+		it.each([
+			'none',
+			'matrix(1, 0, 0, 1, 12, 24)',
+			'matrix(2, 0, 0, 3, 12, 24)',
+			'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 12, 24, 0, 1)',
+		])('accepts %s', (transform) => {
+			expect(() => assertAxisAlignedTransform(transform)).not.toThrow();
+		});
 
 		it.each([
 			'rotate(20deg)',
+			'matrix(0.7071, 0.7071, -0.7071, 0.7071, 0, 0)',
 			'matrix(1, 0.1, 0, 1, 0, 0)',
+			'matrix(-1, 0, 0, -1, 0, 0)',
+			'matrix(-1, 0, 0, 1, 0, 0)',
+			'matrix(0, 0, 0, 1, 0, 0)',
 			'matrix3d(1, 0.1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
+			'matrix3d(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
+			'matrix3d(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
 		])('rejects %s', (transform) => {
 			expect(() => assertAxisAlignedTransform(transform)).toThrow(
-				'Rotated and skewed overlay targets are not supported'
+				'Only finite, positive, axis-aligned transforms'
 			);
 		});
 	});
@@ -65,6 +73,36 @@ describe('OverlayGeometry', () => {
 			vi.spyOn(output, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 0, 0));
 
 			expect(measureOutputCoordinateSpace(output)).toBeUndefined();
+		});
+
+		it('derives the origin from resolved stylesheet offsets', () => {
+			const style = document.createElement('style');
+			style.textContent = '.resolved-offset { left: 20px; top: 10px; width: 100px; height: 50px; }';
+			document.head.append(style);
+			const output = document.createElement('canvas');
+			output.className = 'resolved-offset';
+			vi.spyOn(output, 'getBoundingClientRect').mockReturnValue(rect(40, 30, 200, 100));
+
+			expect(measureOutputCoordinateSpace(output)).toEqual({
+				scaleX: 2,
+				scaleY: 2,
+				originLeft: 0,
+				originTop: 10,
+			});
+			style.remove();
+		});
+
+		it.each([
+			['transform', 'scale(2)'],
+			['border', '1px solid black'],
+			['padding', '1px'],
+		] as const)('rejects an output canvas with its own %s', (property, value) => {
+			const output = createOutput(100, 50);
+			output.style[property] = value;
+
+			expect(() => measureOutputCoordinateSpace(output)).toThrow(
+				'output canvas cannot have its own transform, border, or padding'
+			);
 		});
 	});
 
@@ -100,5 +138,41 @@ describe('OverlayGeometry', () => {
 			'setTarget() requires an HTMLCanvasElement or HTMLVideoElement'
 		);
 		expect(() => assertValidTarget(output, output)).toThrow('cannot be used as its own overlay target');
+	});
+
+	it.each([
+		['transform', 'rotate(20deg)'],
+		['perspective', '500px'],
+	] as const)('rejects an unsupported ancestor %s', (property, value) => {
+		const parent = document.createElement('div');
+		const target = document.createElement('canvas');
+		parent.style[property] = value;
+		parent.append(target);
+		document.body.append(parent);
+
+		expect(() => measureTargetGeometry(target)).toThrow('Only finite, positive, axis-aligned transforms');
+	});
+
+	it('validates transformed ancestors across a shadow-root boundary', () => {
+		const host = document.createElement('div');
+		host.style.transform = 'rotate(20deg)';
+		const target = document.createElement('canvas');
+		host.attachShadow({ mode: 'open' }).append(target);
+		document.body.append(host);
+
+		expect(() => measureTargetGeometry(target)).toThrow('Only finite, positive, axis-aligned transforms');
+	});
+
+	it.each([
+		['rotate', '180deg'],
+		['scale', '-1 1'],
+		['scale', '1 1 1'],
+		['translate', '1px 2px 3px'],
+	] as const)('rejects an individual target %s transform', (property, value) => {
+		const target = document.createElement('canvas');
+		target.style[property] = value;
+		document.body.append(target);
+
+		expect(() => measureTargetGeometry(target)).toThrow('Only finite, positive, axis-aligned transforms');
 	});
 });
