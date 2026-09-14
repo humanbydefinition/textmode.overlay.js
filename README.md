@@ -28,41 +28,6 @@ Bind a target once with `t.overlay.setTarget()`, then sample it with the same ch
 Follow the [official installation guide](https://code.textmode.art/docs/installation) to install
 `textmode.overlay.js` alongside `textmode.js` with npm or browser-ready UMD bundles.
 
-```bash
-npm install textmode.js textmode.overlay.js
-```
-
-## Usage
-
-```ts
-import { textmode } from 'textmode.js';
-import { OverlayPlugin } from 'textmode.overlay.js';
-
-const t = textmode.create({
-	plugins: [OverlayPlugin],
-});
-
-const source = t.overlay.setTarget(sourceCanvas);
-source.characters(' .:-=+*#%@').charColorMode('sampled');
-
-t.draw(() => {
-	t.image(t.overlay.source!, t.grid.cols, t.grid.rows);
-});
-```
-
-`setTarget()` is synchronous and can run immediately after `textmode.create()`. The returned `TextmodeTexture` supports the normal character, color, conversion, and transform settings.
-
-## Migration from core overlay mode
-
-In `textmode.js` 0.18, the built-in `{ overlay: true }` target-overlay mode was extracted into this add-on. Use the table below to update an existing sketch.
-
-| Before | After |
-| --- | --- |
-| `textmode.create({ canvas: target, overlay: true })` | `textmode.create({ plugins: [OverlayPlugin] })` |
-| `t.overlay` as the sampled image | `t.overlay.setTarget(target)`; read the sampled `TextmodeTexture` from `t.overlay.source` |
-| Target following owned by core | Controller lifecycle owned by the add-on |
-| Available without installing anything | Install and import `textmode.overlay.js` |
-
 ## Next steps
 
 - **[Read the documentation](https://code.textmode.art/)** for core concepts and plugin workflows.

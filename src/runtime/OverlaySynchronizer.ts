@@ -1,5 +1,11 @@
-import type { TextmodeOverlayTarget } from '../types';
-import { measureOverlayGeometry, sameGeometry } from './OverlayGeometry';
+import type { TextmodeOverlayPointerEvents, TextmodeOverlayTarget } from '../types';
+import {
+	assertValidOutputCanvas,
+	measureOutputCoordinateSpace,
+	measureTargetGeometry,
+	projectGeometry,
+	sameGeometry,
+} from './OverlayGeometry';
 import type { OverlayGeometry } from './OverlayGeometry';
 
 type CanvasStyleSnapshot = Pick<
@@ -17,6 +23,7 @@ export class OverlaySynchronizer {
 
 	private _target: TextmodeOverlayTarget | undefined;
 	private _visible = true;
+	private _pointerEvents: TextmodeOverlayPointerEvents = 'none';
 	private _resizeObserver: ResizeObserver | undefined;
 	private _mountObserver: MutationObserver | undefined;
 	private _isObserving = false;
@@ -33,11 +40,21 @@ export class OverlaySynchronizer {
 		this._originalStyle = snapshotStyle(output);
 	}
 
-	public bind(target: TextmodeOverlayTarget, visible: boolean): void {
+	public bind(target: TextmodeOverlayTarget, visible: boolean, pointerEvents: TextmodeOverlayPointerEvents): void {
 		this._target = target;
 		this._visible = visible;
-		if (this._insertWhenPossible()) this._observeTarget();
+		this._pointerEvents = pointerEvents;
+		this._normalizeOutputPosition();
+		if (this._insertWhenPossible()) {
+			assertValidOutputCanvas(this._output);
+			this._observeTarget();
+		}
 		this.request();
+	}
+
+	public setPointerEvents(pointerEvents: TextmodeOverlayPointerEvents): void {
+		this._pointerEvents = pointerEvents;
+		if (this._target) this._setStyle('pointerEvents', pointerEvents);
 	}
 
 	public request(): void {
@@ -84,8 +101,12 @@ export class OverlaySynchronizer {
 		const target = this._target;
 		if (!target || !this._insertWhenPossible()) return;
 
-		const geometry = measureOverlayGeometry(target, this._output);
-		if (!geometry || (!forceResize && sameGeometry(this._lastGeometry, geometry))) return;
+		const targetGeometry = measureTargetGeometry(target);
+		if (!targetGeometry) return;
+		const space = measureOutputCoordinateSpace(this._output);
+		if (!space) return;
+		const geometry = projectGeometry(targetGeometry, space);
+		if (!forceResize && sameGeometry(this._lastGeometry, geometry)) return;
 
 		const previousGeometry = this._lastGeometry;
 		const sizeChanged =
@@ -93,10 +114,10 @@ export class OverlaySynchronizer {
 			!previousGeometry ||
 			previousGeometry.width !== geometry.width ||
 			previousGeometry.height !== geometry.height;
-		this._lastGeometry = geometry;
 		this._setStyle('left', `${geometry.left}px`);
 		this._setStyle('top', `${geometry.top}px`);
 		if (sizeChanged) this._resizeCanvas(geometry.width, geometry.height);
+		this._lastGeometry = geometry;
 	}
 
 	private _observeTarget(): void {
@@ -130,12 +151,13 @@ export class OverlaySynchronizer {
 
 		if (this._output.previousSibling !== target || this._output.parentNode !== target.parentNode) {
 			target.parentNode.insertBefore(this._output, target.nextSibling);
+			this._normalizeOutputPosition();
 		}
 
 		const targetZIndex = Number.parseFloat(getComputedStyle(target).zIndex);
 		this._setStyle('position', 'absolute');
 		this._setStyle('zIndex', String((Number.isFinite(targetZIndex) ? targetZIndex : 0) + 1));
-		this._setStyle('pointerEvents', 'auto');
+		this._setStyle('pointerEvents', this._pointerEvents);
 		this._setStyle('display', this._visible ? this._originalStyle.display : 'none');
 		return true;
 	}
@@ -187,6 +209,13 @@ export class OverlaySynchronizer {
 
 	private _setStyle(property: keyof CanvasStyleSnapshot, value: string): void {
 		if (this._output.style[property] !== value) this._output.style[property] = value;
+	}
+
+	private _normalizeOutputPosition(): void {
+		this._setStyle('position', 'absolute');
+		this._setStyle('left', '0px');
+		this._setStyle('top', '0px');
+		this._lastGeometry = undefined;
 	}
 }
 
