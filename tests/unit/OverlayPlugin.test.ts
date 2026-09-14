@@ -1,222 +1,170 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TextmodeExtensionDescriptor, TextmodePluginContext, Textmodifier } from 'textmode.js';
 import { OverlayPlugin } from '../../src/OverlayPlugin';
+import type { TextmodeOverlayControllerImpl } from '../../src/runtime/TextmodeOverlayController';
 import packageMetadata from '../../package.json';
+import { flushAnimationFrame, installAnimationFrameMock, installResizeObserver, rect, setRect } from '../helpers';
+
+interface PluginHarness {
+	output: HTMLCanvasElement;
+	textmodifier: Textmodifier;
+	context: TextmodePluginContext;
+	hooks: Map<string, () => void>;
+	unregisterMocks: ReturnType<typeof vi.fn>[];
+	texture: { dispose: ReturnType<typeof vi.fn> };
+	resizeCanvas: ReturnType<typeof vi.fn>;
+	createTexture: ReturnType<typeof vi.fn>;
+	getController: () => TextmodeOverlayControllerImpl;
+	install: () => () => void;
+}
+
+function createPluginHarness(): PluginHarness {
+	const output = document.createElement('canvas');
+	const texture = { dispose: vi.fn() };
+	const createTexture = vi.fn(() => texture);
+	const resizeCanvas = vi.fn();
+	const textmodifier = { canvas: output, createTexture, resizeCanvas } as unknown as Textmodifier;
+
+	const hooks = new Map<string, () => void>();
+	const unregisterMocks: ReturnType<typeof vi.fn>[] = [];
+	let descriptor: TextmodeExtensionDescriptor<Textmodifier> | undefined;
+
+	const context = {
+		on: vi.fn((hook: string, callback: () => void) => {
+			hooks.set(hook, callback);
+			const unregister = vi.fn();
+			unregisterMocks.push(unregister);
+			return unregister;
+		}),
+		defineExtension: vi.fn((_target, _name, value) => {
+			descriptor = value as TextmodeExtensionDescriptor<Textmodifier>;
+			return vi.fn();
+		}),
+	} as unknown as TextmodePluginContext;
+
+	return {
+		output,
+		textmodifier,
+		context,
+		hooks,
+		unregisterMocks,
+		texture,
+		resizeCanvas,
+		createTexture,
+		getController: () => descriptor?.get?.call(textmodifier) as TextmodeOverlayControllerImpl,
+		install: () => OverlayPlugin.install(textmodifier, context) as () => void,
+	};
+}
+
+beforeEach(() => {
+	installResizeObserver();
+	installAnimationFrameMock();
+});
+
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
+	document.body.replaceChildren();
+});
 
 describe('OverlayPlugin', () => {
 	it('exports stable plugin metadata and defines an instance overlay accessor', () => {
-		const output = document.createElement('canvas');
-		const textmodifier = { canvas: output } as Textmodifier;
-		let descriptor: TextmodeExtensionDescriptor<Textmodifier> | undefined;
-		const context = {
-			on: vi.fn(() => vi.fn()),
-			defineExtension: vi.fn((_target, _name, value) => {
-				descriptor = value as TextmodeExtensionDescriptor<Textmodifier>;
-				return vi.fn();
-			}),
-		} as unknown as TextmodePluginContext;
-
-		const cleanup = OverlayPlugin.install(textmodifier, context);
+		const harness = createPluginHarness();
+		const cleanup = harness.install();
 
 		expect(OverlayPlugin.name).toBe(packageMetadata.name);
-		expect(context.defineExtension).toHaveBeenCalledWith('textmodifier', 'overlay', expect.any(Object));
-		expect(descriptor?.get?.call(textmodifier)).toBeDefined();
+		expect(harness.context.defineExtension).toHaveBeenCalledWith('textmodifier', 'overlay', expect.any(Object));
+		expect(harness.getController()).toBeDefined();
 
-		cleanup?.();
+		cleanup();
 	});
 
 	it('cleans up a live controller through the returned cleanup', () => {
-		const output = document.createElement('canvas');
-		const textmodifier = { canvas: output } as Textmodifier;
-		const unregister = vi.fn();
-		let controller: { isVisible(): boolean } | undefined;
-		const context = {
-			on: vi.fn(() => unregister),
-			defineExtension: vi.fn((_target, _name, descriptor) => {
-				controller = descriptor.get();
-				return vi.fn();
-			}),
-		} as unknown as TextmodePluginContext;
-		const cleanup = OverlayPlugin.install(textmodifier, context);
+		const harness = createPluginHarness();
+		const cleanup = harness.install();
+		const controller = harness.getController();
 
-		cleanup?.();
+		cleanup();
 
-		expect(unregister).toHaveBeenCalledTimes(2);
-		expect(() => controller?.isVisible()).toThrow('controller has been disposed');
+		expect(harness.unregisterMocks).toHaveLength(2);
+		expect(harness.unregisterMocks[0]).toHaveBeenCalledOnce();
+		expect(harness.unregisterMocks[1]).toHaveBeenCalledOnce();
+		expect(() => controller.isVisible()).toThrow('controller has been disposed');
 	});
 
 	it('translates postDraw into a coalesced controller synchronization request', () => {
-		const output = document.createElement('canvas');
+		const harness = createPluginHarness();
 		const target = document.createElement('canvas');
-		const texture = { dispose: vi.fn() };
-		const textmodifier = {
-			canvas: output,
-			createTexture: vi.fn(() => texture),
-			resizeCanvas: vi.fn(),
-		} as unknown as Textmodifier;
-		let postDraw: (() => void) | undefined;
-		const context = {
-			on: vi.fn((_hook, callback: () => void) => {
-				postDraw = callback;
-				return vi.fn();
-			}),
-			defineExtension: vi.fn((_target, _name, descriptor) => descriptor),
-		} as unknown as TextmodePluginContext;
-		let frame: FrameRequestCallback | undefined;
-		const requestAnimationFrame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-			frame = callback;
-			return 1;
-		});
 		document.body.append(target);
 
-		const cleanup = OverlayPlugin.install(textmodifier, context);
-		const controller = (context.defineExtension as ReturnType<typeof vi.fn>).mock.calls[0][2].get();
+		const cleanup = harness.install();
+		const controller = harness.getController();
 		controller.setTarget(target);
-		frame?.(performance.now());
-		requestAnimationFrame.mockClear();
+		flushAnimationFrame();
 
-		postDraw?.();
-		postDraw?.();
+		const rafSpy = vi.spyOn(window, 'requestAnimationFrame');
+		rafSpy.mockClear();
 
-		expect(requestAnimationFrame).toHaveBeenCalledOnce();
-		cleanup?.();
+		harness.hooks.get('postDraw')?.();
+		harness.hooks.get('postDraw')?.();
+
+		expect(rafSpy).toHaveBeenCalledOnce();
+		cleanup();
 	});
 
 	it('reapplies cached target dimensions when core becomes ready', () => {
-		const output = document.createElement('canvas');
+		const harness = createPluginHarness();
 		const target = document.createElement('canvas');
-		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
-			left: 0,
-			top: 0,
-			right: 320,
-			bottom: 180,
-			x: 0,
-			y: 0,
-			width: 320,
-			height: 180,
-			toJSON: () => ({}),
-		});
-		const texture = { dispose: vi.fn() };
-		const resizeCanvas = vi.fn();
-		const textmodifier = {
-			canvas: output,
-			createTexture: vi.fn(() => texture),
-			resizeCanvas,
-		} as unknown as Textmodifier;
-		const hooks = new Map<string, () => void>();
-		const context = {
-			on: vi.fn((hook: string, callback: () => void) => {
-				hooks.set(hook, callback);
-				return vi.fn();
-			}),
-			defineExtension: vi.fn((_target, _name, descriptor) => descriptor),
-		} as unknown as TextmodePluginContext;
-		let frame: FrameRequestCallback | undefined;
-		vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-			frame = callback;
-			return 1;
-		});
+		setRect(target, rect(0, 0, 320, 180));
 		document.body.append(target);
 
-		const cleanup = OverlayPlugin.install(textmodifier, context);
-		const controller = (context.defineExtension as ReturnType<typeof vi.fn>).mock.calls[0][2].get();
+		const cleanup = harness.install();
+		const controller = harness.getController();
 		controller.setTarget(target);
-		frame?.(performance.now());
+		flushAnimationFrame();
 
-		expect(resizeCanvas).toHaveBeenCalledTimes(1);
-		hooks.get('preSetup')?.();
+		expect(harness.resizeCanvas).toHaveBeenCalledTimes(1);
+		harness.hooks.get('preSetup')?.();
 
-		expect(resizeCanvas).toHaveBeenCalledTimes(2);
-		expect(resizeCanvas).toHaveBeenLastCalledWith(320, 180);
-		cleanup?.();
+		expect(harness.resizeCanvas).toHaveBeenCalledTimes(2);
+		expect(harness.resizeCanvas).toHaveBeenLastCalledWith(320, 180);
+		cleanup();
 	});
 
 	it('cancels a pending geometry frame during the core-ready synchronization', () => {
-		const output = document.createElement('canvas');
+		const harness = createPluginHarness();
 		const target = document.createElement('canvas');
-		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
-			left: 0,
-			top: 0,
-			right: 160,
-			bottom: 90,
-			x: 0,
-			y: 0,
-			width: 160,
-			height: 90,
-			toJSON: () => ({}),
-		});
-		const resizeCanvas = vi.fn();
-		const textmodifier = {
-			canvas: output,
-			createTexture: vi.fn(() => ({ dispose: vi.fn() })),
-			resizeCanvas,
-		} as unknown as Textmodifier;
-		const hooks = new Map<string, () => void>();
-		const context = {
-			on: vi.fn((hook: string, callback: () => void) => {
-				hooks.set(hook, callback);
-				return vi.fn();
-			}),
-			defineExtension: vi.fn((_target, _name, descriptor) => descriptor),
-		} as unknown as TextmodePluginContext;
-		vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 7);
-		const cancelAnimationFrame = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+		setRect(target, rect(0, 0, 160, 90));
 		document.body.append(target);
 
-		const cleanup = OverlayPlugin.install(textmodifier, context);
-		const controller = (context.defineExtension as ReturnType<typeof vi.fn>).mock.calls[0][2].get();
+		vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 7);
+		const cancelAnimationFrame = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+
+		const cleanup = harness.install();
+		const controller = harness.getController();
 		controller.setTarget(target);
-		hooks.get('preSetup')?.();
+		harness.hooks.get('preSetup')?.();
 
 		expect(cancelAnimationFrame).toHaveBeenCalledWith(7);
-		expect(resizeCanvas).toHaveBeenCalledOnce();
-		expect(resizeCanvas).toHaveBeenCalledWith(160, 90);
-		cleanup?.();
+		expect(harness.resizeCanvas).toHaveBeenCalledOnce();
+		expect(harness.resizeCanvas).toHaveBeenCalledWith(160, 90);
+		cleanup();
 	});
 
 	it('does not add a core-ready resize when the target is bound after preSetup', () => {
-		const output = document.createElement('canvas');
+		const harness = createPluginHarness();
 		const target = document.createElement('canvas');
-		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
-			left: 0,
-			top: 0,
-			right: 240,
-			bottom: 135,
-			x: 0,
-			y: 0,
-			width: 240,
-			height: 135,
-			toJSON: () => ({}),
-		});
-		const resizeCanvas = vi.fn();
-		const textmodifier = {
-			canvas: output,
-			createTexture: vi.fn(() => ({ dispose: vi.fn() })),
-			resizeCanvas,
-		} as unknown as Textmodifier;
-		const hooks = new Map<string, () => void>();
-		const context = {
-			on: vi.fn((hook: string, callback: () => void) => {
-				hooks.set(hook, callback);
-				return vi.fn();
-			}),
-			defineExtension: vi.fn((_target, _name, descriptor) => descriptor),
-		} as unknown as TextmodePluginContext;
-		let frame: FrameRequestCallback | undefined;
-		vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-			frame = callback;
-			return 1;
-		});
+		setRect(target, rect(0, 0, 240, 135));
 		document.body.append(target);
 
-		const cleanup = OverlayPlugin.install(textmodifier, context);
-		hooks.get('preSetup')?.();
-		const controller = (context.defineExtension as ReturnType<typeof vi.fn>).mock.calls[0][2].get();
+		const cleanup = harness.install();
+		harness.hooks.get('preSetup')?.();
+		const controller = harness.getController();
 		controller.setTarget(target);
-		frame?.(performance.now());
+		flushAnimationFrame();
 
-		expect(resizeCanvas).toHaveBeenCalledOnce();
-		expect(resizeCanvas).toHaveBeenCalledWith(240, 135);
-		cleanup?.();
+		expect(harness.resizeCanvas).toHaveBeenCalledOnce();
+		expect(harness.resizeCanvas).toHaveBeenCalledWith(240, 135);
+		cleanup();
 	});
 });

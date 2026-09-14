@@ -1,6 +1,7 @@
 import type { TextmodeOverlayTarget } from '../types';
 
-const ERROR_PREFIX = '[textmode.overlay.js]';
+/** @internal */
+export const ERROR_PREFIX = '[textmode.overlay.js]';
 const AXIS_ALIGNMENT_TOLERANCE = 1e-8;
 
 /**

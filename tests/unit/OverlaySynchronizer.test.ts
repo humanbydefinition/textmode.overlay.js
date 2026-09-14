@@ -1,46 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OverlaySynchronizer } from '../../src/runtime/OverlaySynchronizer';
-
-class ResizeObserverDouble {
-	public static instances: ResizeObserverDouble[] = [];
-	public readonly disconnect = vi.fn();
-	public readonly observe = vi.fn();
-
-	constructor(_callback: ResizeObserverCallback) {
-		ResizeObserverDouble.instances.push(this);
-	}
-}
-
-let rafCallbacks: FrameRequestCallback[];
-
-function flushAnimationFrame(): void {
-	const callbacks = rafCallbacks.splice(0);
-	for (const callback of callbacks) callback(performance.now());
-}
-
-function rect(left: number, top: number, width: number, height: number): DOMRect {
-	return {
-		left,
-		top,
-		width,
-		height,
-		right: left + width,
-		bottom: top + height,
-		x: left,
-		y: top,
-		toJSON: () => ({}),
-	};
-}
+import {
+	flushAnimationFrame,
+	getRafCallbacks,
+	installAnimationFrameMock,
+	installResizeObserver,
+	rect,
+	ResizeObserverDouble,
+} from '../helpers';
 
 beforeEach(() => {
-	rafCallbacks = [];
-	ResizeObserverDouble.instances = [];
-	vi.stubGlobal('ResizeObserver', ResizeObserverDouble);
-	vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-		rafCallbacks.push(callback);
-		return rafCallbacks.length;
-	});
-	vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+	installResizeObserver();
+	installAnimationFrameMock();
 });
 
 afterEach(() => {
@@ -81,7 +52,7 @@ describe('OverlaySynchronizer', () => {
 		synchronizer.bind(target, true);
 		synchronizer.request();
 		synchronizer.request();
-		expect(rafCallbacks).toHaveLength(1);
+		expect(getRafCallbacks()).toHaveLength(1);
 
 		synchronizer.clear({ restoreCanvas: true });
 

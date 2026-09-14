@@ -1,18 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TextmodeTexture, Textmodifier } from 'textmode.js';
 import { TextmodeOverlayControllerImpl } from '../../src/runtime/TextmodeOverlayController';
-
-class ResizeObserverDouble {
-	public static instances: ResizeObserverDouble[] = [];
-	public readonly observe = vi.fn();
-	public readonly disconnect = vi.fn();
-	public readonly callback: ResizeObserverCallback;
-
-	constructor(callback: ResizeObserverCallback) {
-		this.callback = callback;
-		ResizeObserverDouble.instances.push(this);
-	}
-}
+import {
+	flushAnimationFrame,
+	getRafCallbacks,
+	installAnimationFrameMock,
+	installResizeObserver,
+	rect,
+	ResizeObserverDouble,
+	setRect,
+} from '../helpers';
 
 type Harness = {
 	controller: TextmodeOverlayControllerImpl;
@@ -24,31 +21,7 @@ type Harness = {
 	postDraw: () => void;
 };
 
-let rafCallbacks: FrameRequestCallback[];
 let activeControllers: TextmodeOverlayControllerImpl[];
-
-function rect(left: number, top: number, width: number, height: number): DOMRect {
-	return {
-		left,
-		top,
-		width,
-		height,
-		right: left + width,
-		bottom: top + height,
-		x: left,
-		y: top,
-		toJSON: () => ({}),
-	};
-}
-
-function setRect(element: Element, value: DOMRect): void {
-	vi.spyOn(element, 'getBoundingClientRect').mockReturnValue(value);
-}
-
-function flushAnimationFrame(): void {
-	const pending = rafCallbacks.splice(0);
-	for (const callback of pending) callback(performance.now());
-}
 
 function createHarness(): Harness {
 	const output = document.createElement('canvas');
@@ -76,15 +49,9 @@ function createHarness(): Harness {
 }
 
 beforeEach(() => {
-	rafCallbacks = [];
 	activeControllers = [];
-	ResizeObserverDouble.instances = [];
-	vi.stubGlobal('ResizeObserver', ResizeObserverDouble);
-	vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-		rafCallbacks.push(callback);
-		return rafCallbacks.length;
-	});
-	vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+	installResizeObserver();
+	installAnimationFrameMock();
 });
 
 afterEach(() => {
@@ -131,7 +98,7 @@ describe('TextmodeOverlayController', () => {
 		expect(harness.resizeCanvas).toHaveBeenLastCalledWith(640, 360);
 
 		video.dispatchEvent(new Event('loadedmetadata'));
-		expect(rafCallbacks).toHaveLength(1);
+		expect(getRafCallbacks()).toHaveLength(1);
 	});
 
 	it('uses target backing dimensions when layout geometry is zero', () => {
@@ -183,7 +150,7 @@ describe('TextmodeOverlayController', () => {
 		ResizeObserverDouble.instances[0].callback([], ResizeObserverDouble.instances[0] as unknown as ResizeObserver);
 		harness.postDraw();
 
-		expect(rafCallbacks).toHaveLength(1);
+		expect(getRafCallbacks()).toHaveLength(1);
 	});
 
 	it('does not resize again when geometry is unchanged', () => {
@@ -227,7 +194,7 @@ describe('TextmodeOverlayController', () => {
 
 		expect(second).toBe(first);
 		expect(harness.createTexture).toHaveBeenCalledTimes(1);
-		expect(rafCallbacks).toHaveLength(1);
+		expect(getRafCallbacks()).toHaveLength(1);
 	});
 
 	it('disposes the old source before retargeting', () => {
@@ -272,7 +239,7 @@ describe('TextmodeOverlayController', () => {
 		harness.controller.toggle();
 		expect(harness.controller.isVisible()).toBe(true);
 		expect(harness.output.style.display).toBe('');
-		expect(rafCallbacks).toHaveLength(1);
+		expect(getRafCallbacks()).toHaveLength(1);
 	});
 
 	it('clears idempotently and restores DOM placement and modified inline styles', () => {
