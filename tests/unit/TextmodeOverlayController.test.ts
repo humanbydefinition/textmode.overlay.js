@@ -24,11 +24,14 @@ type Harness = {
 
 let activeControllers: TextmodeOverlayControllerImpl[];
 
-function createHarness(options: { scaleX?: number; scaleY?: number } = {}): Harness {
+function createHarness(
+	options: { scaleX?: number; scaleY?: number; mountOutput?: (output: HTMLCanvasElement) => void } = {}
+): Harness {
 	const output = document.createElement('canvas');
 	output.style.cssText = 'position:relative;left:2px;top:3px;width:40px;height:30px;z-index:7;pointer-events:none';
 	mockRenderedRect(output, options.scaleX, options.scaleY);
-	document.body.append(output);
+	if (options.mountOutput) options.mountOutput(output);
+	else document.body.append(output);
 
 	const texture = {
 		dispose: vi.fn(),
@@ -204,6 +207,23 @@ describe('TextmodeOverlayController', () => {
 		expect(getRafCallbacks()).toHaveLength(1);
 	});
 
+	it('updates pointer events when the current target is rebound without recreating its source', () => {
+		const harness = createHarness();
+		const target = document.createElement('canvas');
+		document.body.prepend(target);
+		const source = harness.controller.setTarget(target);
+
+		const interactiveSource = harness.controller.setTarget(target, { pointerEvents: 'auto' });
+		expect(interactiveSource).toBe(source);
+		expect(harness.output.style.pointerEvents).toBe('auto');
+
+		const passThroughSource = harness.controller.setTarget(target);
+		expect(passThroughSource).toBe(source);
+		expect(harness.output.style.pointerEvents).toBe('none');
+		expect(harness.createTexture).toHaveBeenCalledTimes(1);
+		expect(ResizeObserverDouble.instances).toHaveLength(1);
+	});
+
 	it('disposes the old source before retargeting', () => {
 		const harness = createHarness();
 		const firstTarget = document.createElement('canvas');
@@ -253,7 +273,8 @@ describe('TextmodeOverlayController', () => {
 		const harness = createHarness();
 		const target = document.createElement('canvas');
 		document.body.prepend(target);
-		harness.controller.setTarget(target);
+		harness.controller.setTarget(target, { pointerEvents: 'auto' });
+		expect(harness.output.style.pointerEvents).toBe('auto');
 
 		harness.controller.clearTarget();
 		harness.controller.clearTarget();
@@ -268,6 +289,28 @@ describe('TextmodeOverlayController', () => {
 		expect(ResizeObserverDouble.instances[0].disconnect).toHaveBeenCalledOnce();
 	});
 
+	it('restores the original parent, sibling, and owned inline styles after reparenting', () => {
+		const originalParent = document.createElement('div');
+		const originalNextSibling = document.createElement('span');
+		const targetParent = document.createElement('div');
+		const target = document.createElement('canvas');
+		originalParent.append(originalNextSibling);
+		targetParent.append(target);
+		document.body.append(originalParent, targetParent);
+		const harness = createHarness({
+			mountOutput: (output) => originalParent.insertBefore(output, originalNextSibling),
+		});
+		const originalStyle = harness.output.style.cssText;
+
+		harness.controller.setTarget(target, { pointerEvents: 'auto' });
+		expect(harness.output.parentNode).toBe(targetParent);
+		harness.controller.clearTarget();
+
+		expect(harness.output.parentNode).toBe(originalParent);
+		expect(harness.output.nextSibling).toBe(originalNextSibling);
+		expect(harness.output.style.cssText).toBe(originalStyle);
+	});
+
 	it('does not reattach a core-removed output canvas during disposal', () => {
 		const harness = createHarness();
 		const target = document.createElement('canvas');
@@ -280,7 +323,7 @@ describe('TextmodeOverlayController', () => {
 		expect(harness.output.isConnected).toBe(false);
 	});
 
-	it('rejects invalid, self, rotated, and skewed targets descriptively', () => {
+	it('rejects invalid, self, and unsupported transformed targets descriptively', () => {
 		const harness = createHarness();
 		expect(() => harness.controller.setTarget({} as HTMLCanvasElement)).toThrow(
 			'setTarget() requires an HTMLCanvasElement or HTMLVideoElement'
@@ -290,9 +333,48 @@ describe('TextmodeOverlayController', () => {
 		const rotated = document.createElement('canvas');
 		rotated.style.transform = 'rotate(20deg)';
 		document.body.append(rotated);
-		expect(() => harness.controller.setTarget(rotated)).toThrow(
-			'Rotated and skewed overlay targets are not supported'
+		expect(() => harness.controller.setTarget(rotated)).toThrow('Only finite, positive, axis-aligned transforms');
+	});
+
+	it('rejects unsupported output chrome synchronously before mutating the binding', () => {
+		const harness = createHarness();
+		const targetParent = document.createElement('div');
+		const target = document.createElement('canvas');
+		targetParent.append(target);
+		document.body.prepend(targetParent);
+		harness.output.style.border = '1px solid black';
+		const originalStyle = harness.output.style.cssText;
+
+		expect(() => harness.controller.setTarget(target)).toThrow(
+			'output canvas cannot have its own transform, border, or padding'
 		);
+		expect(harness.createTexture).not.toHaveBeenCalled();
+		expect(harness.output.parentNode).toBe(document.body);
+		expect(harness.output.style.cssText).toBe(originalStyle);
+	});
+
+	it('rolls back when destination CSS adds unsupported output chrome', () => {
+		const harness = createHarness();
+		harness.output.id = 'destination-styled-output';
+		const style = document.createElement('style');
+		style.textContent = '.target-parent > #destination-styled-output { border: 1px solid black; }';
+		document.head.append(style);
+		const targetParent = document.createElement('div');
+		targetParent.className = 'target-parent';
+		const target = document.createElement('canvas');
+		targetParent.append(target);
+		document.body.prepend(targetParent);
+		const originalStyle = harness.output.style.cssText;
+
+		expect(() => harness.controller.setTarget(target)).toThrow(
+			'output canvas cannot have its own transform, border, or padding'
+		);
+		expect(harness.createTexture).not.toHaveBeenCalled();
+		expect(harness.controller.target).toBeUndefined();
+		expect(harness.controller.source).toBeUndefined();
+		expect(harness.output.parentNode).toBe(document.body);
+		expect(harness.output.style.cssText).toBe(originalStyle);
+		style.remove();
 	});
 
 	it('isolates multiple controllers', () => {

@@ -1,5 +1,5 @@
 import type { TextmodeTexture, Textmodifier } from 'textmode.js';
-import { assertValidTarget, ERROR_PREFIX } from './OverlayGeometry';
+import { assertValidOutputCanvas, assertValidTarget, ERROR_PREFIX } from './OverlayGeometry';
 import { OverlaySynchronizer } from './OverlaySynchronizer';
 import type { TextmodeOverlayController, TextmodeOverlaySetTargetOptions, TextmodeOverlayTarget } from '../types';
 
@@ -35,17 +35,27 @@ export class TextmodeOverlayControllerImpl implements TextmodeOverlayController 
 	public setTarget(target: TextmodeOverlayTarget, options: TextmodeOverlaySetTargetOptions = {}): TextmodeTexture {
 		this._assertActive();
 		assertValidTarget(target, this._output);
+		assertValidOutputCanvas(this._output);
+		const pointerEvents = options.pointerEvents ?? 'none';
 
 		if (target === this._target && this._source) {
+			this._synchronizer.setPointerEvents(pointerEvents);
 			this.requestSynchronization();
 			return this._source;
 		}
 
 		this._releaseBinding(false);
 		this._target = target;
-		this._source = this._textmodifier.createTexture(target);
-		this._synchronizer.bind(target, this._visible, options.pointerEvents ?? 'none');
-		return this._source;
+		try {
+			this._synchronizer.bind(target, this._visible, pointerEvents);
+			this._source = this._textmodifier.createTexture(target);
+			return this._source;
+		} catch (error) {
+			this._synchronizer.clear({ restoreCanvas: true });
+			this._target = undefined;
+			this._source = undefined;
+			throw error;
+		}
 	}
 
 	public clearTarget(): void {

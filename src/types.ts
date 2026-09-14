@@ -80,16 +80,26 @@ export interface TextmodeOverlayController {
 	/**
 	 * Sample a target and align the textmode output canvas above it.
 	 *
+	 * Positive axis-aligned scale and translation, CSS `zoom`, and scrolling are
+	 * supported on the target and its ancestors. Rotation, skew, reflection,
+	 * collapsed axes, 3D projection, and output-canvas transform/border/padding
+	 * are rejected.
+	 *
 	 * @category Target binding
 	 *
 	 * @param target Canvas or video to sample.
 	 * @param options Binding options, including the output canvas pointer-event policy.
 	 * @returns The configurable texture source.
+	 * @throws {TypeError | Error} When the target kind or target/output geometry cannot be represented by an axis-aligned canvas.
 	 *
 	 * @example
 	 * ```ts
+	 * // Pointer input passes through the overlay by default.
 	 * const source = t.overlay.setTarget(canvas);
 	 * source.characters(' .:-=+*#%@');
+	 *
+	 * // Opt in when textmode.js mouse handlers should receive the input.
+	 * t.overlay.setTarget(canvas, { pointerEvents: 'auto' });
 	 * ```
 	 *
 	 * @see {@link https://code.textmode.art/api/textmode.overlay.js/interfaces/TextmodeOverlayController#settarget | TextmodeOverlayController.setTarget API reference}
