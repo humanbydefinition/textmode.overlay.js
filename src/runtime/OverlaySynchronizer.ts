@@ -1,5 +1,11 @@
 import type { TextmodeOverlayPointerEvents, TextmodeOverlayTarget } from '../types';
-import { measureOutputCoordinateSpace, measureTargetGeometry, projectGeometry, sameGeometry } from './OverlayGeometry';
+import {
+	assertValidOutputCanvas,
+	measureOutputCoordinateSpace,
+	measureTargetGeometry,
+	projectGeometry,
+	sameGeometry,
+} from './OverlayGeometry';
 import type { OverlayGeometry } from './OverlayGeometry';
 
 type CanvasStyleSnapshot = Pick<
@@ -22,7 +28,6 @@ export class OverlaySynchronizer {
 	private _mountObserver: MutationObserver | undefined;
 	private _isObserving = false;
 	private _animationFrame: number | undefined;
-	private _lastTargetGeometry: OverlayGeometry | undefined;
 	private _lastGeometry: OverlayGeometry | undefined;
 
 	private readonly _scheduleFromEvent = (): void => this.request();
@@ -39,8 +44,17 @@ export class OverlaySynchronizer {
 		this._target = target;
 		this._visible = visible;
 		this._pointerEvents = pointerEvents;
-		if (this._insertWhenPossible()) this._observeTarget();
+		this._normalizeOutputPosition();
+		if (this._insertWhenPossible()) {
+			assertValidOutputCanvas(this._output);
+			this._observeTarget();
+		}
 		this.request();
+	}
+
+	public setPointerEvents(pointerEvents: TextmodeOverlayPointerEvents): void {
+		this._pointerEvents = pointerEvents;
+		if (this._target) this._setStyle('pointerEvents', pointerEvents);
 	}
 
 	public request(): void {
@@ -75,7 +89,6 @@ export class OverlaySynchronizer {
 		this._cancelAnimationFrame();
 		this._disconnectObserversAndListeners();
 		this._target = undefined;
-		this._lastTargetGeometry = undefined;
 		this._lastGeometry = undefined;
 		if (options.restoreCanvas) this._restoreCanvas();
 	}
@@ -90,12 +103,10 @@ export class OverlaySynchronizer {
 
 		const targetGeometry = measureTargetGeometry(target);
 		if (!targetGeometry) return;
-		if (!forceResize && this._lastGeometry && sameGeometry(this._lastTargetGeometry, targetGeometry)) return;
-		this._lastTargetGeometry = targetGeometry;
-
 		const space = measureOutputCoordinateSpace(this._output);
 		if (!space) return;
 		const geometry = projectGeometry(targetGeometry, space);
+		if (!forceResize && sameGeometry(this._lastGeometry, geometry)) return;
 
 		const previousGeometry = this._lastGeometry;
 		const sizeChanged =
@@ -103,10 +114,10 @@ export class OverlaySynchronizer {
 			!previousGeometry ||
 			previousGeometry.width !== geometry.width ||
 			previousGeometry.height !== geometry.height;
-		this._lastGeometry = geometry;
 		this._setStyle('left', `${geometry.left}px`);
 		this._setStyle('top', `${geometry.top}px`);
 		if (sizeChanged) this._resizeCanvas(geometry.width, geometry.height);
+		this._lastGeometry = geometry;
 	}
 
 	private _observeTarget(): void {
@@ -140,8 +151,7 @@ export class OverlaySynchronizer {
 
 		if (this._output.previousSibling !== target || this._output.parentNode !== target.parentNode) {
 			target.parentNode.insertBefore(this._output, target.nextSibling);
-			this._setStyle('left', '0px');
-			this._setStyle('top', '0px');
+			this._normalizeOutputPosition();
 		}
 
 		const targetZIndex = Number.parseFloat(getComputedStyle(target).zIndex);
@@ -199,6 +209,13 @@ export class OverlaySynchronizer {
 
 	private _setStyle(property: keyof CanvasStyleSnapshot, value: string): void {
 		if (this._output.style[property] !== value) this._output.style[property] = value;
+	}
+
+	private _normalizeOutputPosition(): void {
+		this._setStyle('position', 'absolute');
+		this._setStyle('left', '0px');
+		this._setStyle('top', '0px');
+		this._lastGeometry = undefined;
 	}
 }
 
