@@ -21,7 +21,7 @@ Bind a target once with `t.overlay.setTarget()`, then sample it with the same ch
 - **DOM lifecycle ownership** - Clearing or uninstalling the plugin restores the output canvas to its original DOM location and modified inline styles
 - **Disconnected-target watching** - Targets are watched until they are mounted into the document
 - **Output visibility controls** - Show, hide, and toggle only the output canvas while sampling and sketch execution continue
-- **Axis-aligned positioning** - Rotated or skewed CSS targets are rejected rather than approximated
+- **Axis-aligned positioning** - Positive scale, translation, CSS `zoom`, and scrolling are projected accurately; unsupported transforms are rejected rather than approximated
 
 ## Installation
 
