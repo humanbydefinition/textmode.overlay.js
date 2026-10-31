@@ -14,7 +14,7 @@ const t = textmode.create({
 	fontSize: 16,
 	plugins: [OverlayPlugin],
 });
-const source = t.overlay.setTarget(sourceCanvas);
+const source = t.overlay.setTarget(sourceCanvas, { pointerEvents: 'auto' });
 source.characters(' .:-=+*#%@').charColorMode('sampled').cellColorMode('fixed');
 const labelLayer = t.layers.add();
 let lastToggleFrame = 0;

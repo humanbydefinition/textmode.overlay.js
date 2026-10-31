@@ -3,7 +3,14 @@ import type { TextmodeExtensionDescriptor, TextmodePluginContext, Textmodifier }
 import { OverlayPlugin } from '../../src/OverlayPlugin';
 import type { TextmodeOverlayControllerImpl } from '../../src/runtime/TextmodeOverlayController';
 import packageMetadata from '../../package.json';
-import { flushAnimationFrame, installAnimationFrameMock, installResizeObserver, rect, setRect } from '../helpers';
+import {
+	flushAnimationFrame,
+	installAnimationFrameMock,
+	installResizeObserver,
+	mockRenderedRect,
+	rect,
+	setRect,
+} from '../helpers';
 
 interface PluginHarness {
 	output: HTMLCanvasElement;
@@ -20,6 +27,9 @@ interface PluginHarness {
 
 function createPluginHarness(): PluginHarness {
 	const output = document.createElement('canvas');
+	output.style.width = '10px';
+	output.style.height = '10px';
+	mockRenderedRect(output);
 	const texture = { dispose: vi.fn() };
 	const createTexture = vi.fn(() => texture);
 	const resizeCanvas = vi.fn();

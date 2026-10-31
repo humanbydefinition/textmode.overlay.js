@@ -44,7 +44,7 @@ function activate(index) {
 	active = index;
 	targets[0].style.display = index === 0 ? 'block' : 'none';
 	targets[1].style.display = index === 1 ? 'block' : 'none';
-	source = t.overlay.setTarget(targets[index]);
+	source = t.overlay.setTarget(targets[index], { pointerEvents: 'auto' });
 	source
 		.characters(index === 0 ? ' .-=+#@' : ' .,:irsXA#@')
 		.charColorMode('sampled')

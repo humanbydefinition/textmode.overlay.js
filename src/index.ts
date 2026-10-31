@@ -28,7 +28,12 @@ import type { TextmodePlugin } from 'textmode.js';
 import { OverlayPlugin } from './OverlayPlugin';
 
 export { OverlayPlugin };
-export type { TextmodeOverlayController, TextmodeOverlayTarget } from './types';
+export type {
+	TextmodeOverlayController,
+	TextmodeOverlayPointerEvents,
+	TextmodeOverlaySetTargetOptions,
+	TextmodeOverlayTarget,
+} from './types';
 
 declare global {
 	interface Window {
