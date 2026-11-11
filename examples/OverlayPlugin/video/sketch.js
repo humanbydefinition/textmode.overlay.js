@@ -15,12 +15,12 @@ document.body.append(video);
 const t = textmode.create({
 	width: window.innerWidth,
 	height: window.innerHeight,
-	fontSize: 16,
+	fontSize: window.innerWidth < 700 ? 8 : 16,
 	plugins: [OverlayPlugin],
 });
 const source = t.overlay.setTarget(video);
 source.characters(' .,:;irsXA253hMHGS#9B&@').charColorMode('sampled').cellColorMode('fixed');
-const labelLayer = t.layers.add();
+const labelLayer = t.layers.add({ fontSize: window.innerWidth < 700 ? 8 : 16 });
 
 function resizeFeed() {
 	feed.width = window.innerWidth;
@@ -41,12 +41,20 @@ function paintFeed() {
 	}
 }
 
-function label(text, x, y, color = [140, 160, 190]) {
+function drawLabel(lines) {
+	const { cols, rows } = labelLayer.grid;
+	const [left, top] = [-Math.floor(cols / 2), -Math.floor(rows / 2)];
+	const width = Math.max(...lines.map(([text]) => [...text].length)) + 2;
 	t.push();
-	t.printAlign('left', 'top');
-	t.charColor(...color);
-	t.print(text, x, y);
+	t.translate(left + (width + 4) / 2, top + (lines.length + 5) / 2);
+	t.cellColor(6, 10, 22);
+	t.rect(width, lines.length + 2);
 	t.pop();
+	t.printAlign('left', 'top');
+	lines.forEach(([text, color], i) => {
+		t.charColor(color[0], color[1], color[2]);
+		t.print(text, left + 3, top + 3 + i);
+	});
 }
 
 resizeFeed();
@@ -62,13 +70,22 @@ t.draw(() => {
 
 labelLayer.draw(() => {
 	t.clear();
-	const left = -Math.floor(t.grid.cols / 2);
-	const top = -Math.floor(t.grid.rows / 2);
-	label('OVERLAYPLUGIN.VIDEO', left + 3, top + 3, [251, 113, 133]);
-	label('VIDEO READY: LATE', left + 3, top + 5);
+	drawLabel([
+		['OVERLAYPLUGIN.VIDEO', [120, 240, 180]],
+		['------------------------------------', [70, 100, 140]],
+		['CONCEPT: VIDEO AS OVERLAY TARGET', [140, 210, 255]],
+		['A 30 fps canvas stream feeds a video.', [140, 160, 190]],
+		['Video frames drive the character grid.', [140, 160, 190]],
+		['------------------------------------', [70, 100, 140]],
+		[`VIDEO: ${video.paused ? 'PAUSED' : 'PLAYING'}`, [140, 255, 200]],
+		[`TIME: ${video.currentTime.toFixed(1)}S`, [140, 255, 200]],
+	]);
 });
 
 t.windowResized(() => {
 	resizeFeed();
 	t.resizeCanvas(window.innerWidth, window.innerHeight);
+	const size = window.innerWidth < 700 ? 8 : 16;
+	t.fontSize(size);
+	for (const layer of t.layers.all) layer.fontSize(size);
 });
