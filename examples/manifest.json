@@ -9,22 +9,32 @@
 				{
 					"title": "OverlayPlugin.canvas",
 					"sourceFile": "examples/OverlayPlugin/canvas/sketch.js",
-					"status": "good"
+					"status": "unrated"
 				},
 				{
 					"title": "OverlayPlugin.video",
 					"sourceFile": "examples/OverlayPlugin/video/sketch.js",
-					"status": "good"
+					"status": "unrated"
 				},
 				{
 					"title": "OverlayPlugin.retarget",
 					"sourceFile": "examples/OverlayPlugin/retarget/sketch.js",
-					"status": "good"
+					"status": "unrated"
 				},
 				{
 					"title": "OverlayPlugin.visibility",
 					"sourceFile": "examples/OverlayPlugin/visibility/sketch.js",
-					"status": "good"
+					"status": "unrated"
+				},
+				{
+					"title": "OverlayPlugin.binding",
+					"sourceFile": "examples/OverlayPlugin/binding/sketch.js",
+					"status": "unrated"
+				},
+				{
+					"title": "OverlayPlugin.pointerEvents",
+					"sourceFile": "examples/OverlayPlugin/pointerEvents/sketch.js",
+					"status": "unrated"
 				}
 			]
 		}
