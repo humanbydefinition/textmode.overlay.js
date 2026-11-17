@@ -1,6 +1,5 @@
 /**
  * @title OverlayPlugin.canvas
- * @author humanbydefinition
  */
 
 const target = document.createElement('canvas');
