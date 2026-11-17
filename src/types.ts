@@ -93,14 +93,7 @@ export interface TextmodeOverlayController {
 	 * @throws {TypeError | Error} When the target kind or target/output geometry cannot be represented by an axis-aligned canvas.
 	 *
 	 * @example
-	 * ```ts
-	 * // Pointer input passes through the overlay by default.
-	 * const source = t.overlay.setTarget(canvas);
-	 * source.characters(' .:-=+*#%@');
-	 *
-	 * // Opt in when textmode.js mouse handlers should receive the input.
-	 * t.overlay.setTarget(canvas, { pointerEvents: 'auto' });
-	 * ```
+	 * {@includeCode ../examples/OverlayPlugin/pointerEvents/sketch.js}
 	 *
 	 * @see {@link https://code.textmode.art/api/textmode.overlay.js/interfaces/TextmodeOverlayController#settarget | TextmodeOverlayController.setTarget API reference}
 	 */
@@ -112,9 +105,7 @@ export interface TextmodeOverlayController {
 	 * @category Target binding
 	 *
 	 * @example
-	 * ```ts
-	 * t.overlay.clearTarget();
-	 * ```
+	 * {@includeCode ../examples/OverlayPlugin/binding/sketch.js}
 	 *
 	 * @see {@link https://code.textmode.art/api/textmode.overlay.js/interfaces/TextmodeOverlayController#cleartarget | TextmodeOverlayController.clearTarget API reference}
 	 */
