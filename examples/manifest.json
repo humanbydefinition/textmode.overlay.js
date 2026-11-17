@@ -25,6 +25,16 @@
 					"title": "OverlayPlugin.visibility",
 					"sourceFile": "examples/OverlayPlugin/visibility/sketch.js",
 					"status": "good"
+				},
+				{
+					"title": "OverlayPlugin.binding",
+					"sourceFile": "examples/OverlayPlugin/binding/sketch.js",
+					"status": "good"
+				},
+				{
+					"title": "OverlayPlugin.pointerEvents",
+					"sourceFile": "examples/OverlayPlugin/pointerEvents/sketch.js",
+					"status": "good"
 				}
 			]
 		}

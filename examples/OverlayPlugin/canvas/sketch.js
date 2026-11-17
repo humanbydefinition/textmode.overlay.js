@@ -3,68 +3,77 @@
  * @author humanbydefinition
  */
 
-const sourceCanvas = document.createElement('canvas');
-const sourceContext = sourceCanvas.getContext('2d');
-sourceCanvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh';
-document.body.append(sourceCanvas);
-
+const target = document.createElement('canvas');
+const context = target.getContext('2d');
+target.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh';
+document.body.append(target);
 const t = textmode.create({
 	width: window.innerWidth,
 	height: window.innerHeight,
-	fontSize: 16,
+	fontSize: window.innerWidth < 700 ? 8 : 16,
 	plugins: [OverlayPlugin],
 });
-const source = t.overlay.setTarget(sourceCanvas);
-source.characters(' .:-=+*#%@').charColorMode('sampled').cellColorMode('fixed');
-const labelLayer = t.layers.add();
+const source = t.overlay.setTarget(target);
+source.characters(' .:-=+*#%@').charColorMode('sampled').cellColorMode('fixed').cellColor(16, 20, 44);
+const labelLayer = t.layers.add({ fontSize: window.innerWidth < 700 ? 8 : 16 });
 
-function resizeSource() {
-	sourceCanvas.width = window.innerWidth;
-	sourceCanvas.height = window.innerHeight;
+function resizeTargets() {
+	target.width = window.innerWidth;
+	target.height = window.innerHeight;
 }
+resizeTargets();
 
-function paintSource() {
-	const width = sourceCanvas.width;
-	const height = sourceCanvas.height;
-	const drift = Math.sin(t.frameCount * 0.025) * width * 0.05;
-	const gradient = sourceContext.createLinearGradient(0, 0, width, height);
-	gradient.addColorStop(0, '#020617');
-	gradient.addColorStop(0.55, '#0c4a6e');
-	gradient.addColorStop(1, '#172554');
-	sourceContext.fillStyle = gradient;
-	sourceContext.fillRect(0, 0, width, height);
-	sourceContext.fillStyle = '#67e8f9';
-	sourceContext.fillRect(width * 0.18 + drift, height * 0.28, width * 0.26, height * 0.13);
-	sourceContext.fillStyle = '#fbbf24';
-	sourceContext.beginPath();
-	sourceContext.arc(width * 0.7 - drift, height * 0.58, Math.min(width, height) * 0.12, 0, Math.PI * 2);
-	sourceContext.fill();
-}
-
-function label(text, x, y, color = [140, 160, 190]) {
-	t.push();
-	t.printAlign('left', 'top');
-	t.charColor(...color);
-	t.print(text, x, y);
-	t.pop();
-}
-
-resizeSource();
 t.draw(() => {
-	paintSource();
-	t.clear();
+	const w = target.width;
+	const h = target.height;
+	context.fillStyle = '#10142c';
+	context.fillRect(0, 0, w, h);
+	context.fillStyle = '#ffbd69';
+	context.beginPath();
+	context.arc(w * 0.68, h * 0.55, Math.min(w, h) * 0.24, 0, Math.PI * 2);
+	context.fill();
+	context.fillStyle = '#ec5f67';
+	for (let i = 0; i < 4; i++) {
+		context.fillRect(w * 0.4, h * (0.55 + i * 0.07), w * 0.55, h * 0.025);
+	}
+	t.background(16, 20, 44);
 	t.image(t.overlay.source, t.grid.cols, t.grid.rows);
 });
 
+function drawLabel(lines) {
+	const { cols, rows } = labelLayer.grid;
+	const left = -Math.floor(cols / 2);
+	const top = -Math.floor(rows / 2);
+	const width = Math.max(...lines.map(([text]) => text.length)) + 2;
+	t.push();
+	t.translate(left + (width + 4) / 2, top + (lines.length + 5) / 2);
+	t.cellColor(6, 10, 22);
+	t.rect(width, lines.length + 2);
+	t.pop();
+	t.printAlign('left', 'top');
+	lines.forEach(([text, color], index) => {
+		t.charColor(...color);
+		t.print(text, left + 3, top + 3 + index);
+	});
+}
+
 labelLayer.draw(() => {
 	t.clear();
-	const left = -Math.floor(t.grid.cols / 2);
-	const top = -Math.floor(t.grid.rows / 2);
-	label('OVERLAYPLUGIN.CANVAS', left + 3, top + 3, [103, 232, 249]);
-	label('LIVE CANVAS -> OUTPUT', left + 3, top + 5);
+	drawLabel([
+		['OVERLAYPLUGIN.CANVAS', [120, 240, 180]],
+		['------------------------------------', [70, 100, 140]],
+		['CANVAS TO TEXT', [140, 210, 255]],
+		['The sunset is drawn on a 2D canvas.', [140, 160, 190]],
+		['The overlay samples that canvas.', [140, 160, 190]],
+		['------------------------------------', [70, 100, 140]],
+		['SOURCE: t.overlay.source', [255, 200, 80]],
+	]);
 });
 
 t.windowResized(() => {
-	resizeSource();
+	resizeTargets();
 	t.resizeCanvas(window.innerWidth, window.innerHeight);
+	const size = window.innerWidth < 700 ? 8 : 16;
+	t.fontSize(size);
+	labelLayer.fontSize(size);
 });

@@ -4,71 +4,82 @@
  */
 
 const feed = document.createElement('canvas');
-const feedContext = feed.getContext('2d');
+const context = feed.getContext('2d');
 const video = document.createElement('video');
 video.muted = true;
 video.autoplay = true;
 video.playsInline = true;
-video.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover';
+video.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh';
 document.body.append(video);
-
 const t = textmode.create({
 	width: window.innerWidth,
 	height: window.innerHeight,
-	fontSize: 16,
+	fontSize: window.innerWidth < 700 ? 8 : 16,
 	plugins: [OverlayPlugin],
 });
 const source = t.overlay.setTarget(video);
-source.characters(' .,:;irsXA253hMHGS#9B&@').charColorMode('sampled').cellColorMode('fixed');
-const labelLayer = t.layers.add();
+source.characters(' .:-=+*#%@').charColorMode('sampled').cellColorMode('fixed').cellColor(7, 27, 50);
+const labelLayer = t.layers.add({ fontSize: window.innerWidth < 700 ? 8 : 16 });
 
-function resizeFeed() {
+function resizeTargets() {
 	feed.width = window.innerWidth;
 	feed.height = window.innerHeight;
 }
-
-function paintFeed() {
-	const width = feed.width;
-	const height = feed.height;
-	const phase = t.frameCount * 0.018;
-	feedContext.fillStyle = '#030712';
-	feedContext.fillRect(0, 0, width, height);
-	for (let index = 0; index < 7; index++) {
-		const y = height * (0.18 + index * 0.11);
-		const shift = Math.sin(phase + index * 0.8) * width * 0.12;
-		feedContext.fillStyle = index % 2 ? '#22d3ee' : '#fb7185';
-		feedContext.fillRect(width * 0.18 + shift, y, width * 0.56, height * 0.045);
-	}
-}
-
-function label(text, x, y, color = [140, 160, 190]) {
-	t.push();
-	t.printAlign('left', 'top');
-	t.charColor(...color);
-	t.print(text, x, y);
-	t.pop();
-}
-
-resizeFeed();
-paintFeed();
+resizeTargets();
 video.srcObject = feed.captureStream(30);
-video.play().catch(() => undefined);
-
+video.play().catch((error) => console.error('Video playback failed:', error));
+window.addEventListener('pagehide', () => {
+	video.srcObject.getTracks().forEach((track) => track.stop());
+});
 t.draw(() => {
-	paintFeed();
-	t.clear();
+	const w = feed.width;
+	const h = feed.height;
+	context.fillStyle = '#071b32';
+	context.fillRect(0, 0, w, h);
+	context.fillStyle = '#41d8ca';
+	for (let i = 0; i < 5; i++) {
+		const x = w * (0.25 + i * 0.13);
+		const height = h * (0.15 + 0.12 * Math.sin(t.frameCount * 0.04 + i));
+		context.fillRect(x, h * 0.72 - height, w * 0.08, height);
+	}
+	t.background(7, 27, 50);
 	t.image(t.overlay.source, t.grid.cols, t.grid.rows);
 });
 
+function drawLabel(lines) {
+	const { cols, rows } = labelLayer.grid;
+	const left = -Math.floor(cols / 2);
+	const top = -Math.floor(rows / 2);
+	const width = Math.max(...lines.map(([text]) => text.length)) + 2;
+	t.push();
+	t.translate(left + (width + 4) / 2, top + (lines.length + 5) / 2);
+	t.cellColor(6, 10, 22);
+	t.rect(width, lines.length + 2);
+	t.pop();
+	t.printAlign('left', 'top');
+	lines.forEach(([text, color], index) => {
+		t.charColor(...color);
+		t.print(text, left + 3, top + 3 + index);
+	});
+}
+
 labelLayer.draw(() => {
 	t.clear();
-	const left = -Math.floor(t.grid.cols / 2);
-	const top = -Math.floor(t.grid.rows / 2);
-	label('OVERLAYPLUGIN.VIDEO', left + 3, top + 3, [251, 113, 133]);
-	label('VIDEO READY: LATE', left + 3, top + 5);
+	drawLabel([
+		['OVERLAYPLUGIN.VIDEO', [120, 240, 180]],
+		['------------------------------------', [70, 100, 140]],
+		['VIDEO TO TEXT', [140, 210, 255]],
+		['A canvas stream plays in a video.', [140, 160, 190]],
+		['The overlay samples the video frames.', [140, 160, 190]],
+		['------------------------------------', [70, 100, 140]],
+		[`VIDEO: ${video.paused ? 'PAUSED' : 'PLAYING'}`, [255, 200, 80]],
+	]);
 });
 
 t.windowResized(() => {
-	resizeFeed();
+	resizeTargets();
 	t.resizeCanvas(window.innerWidth, window.innerHeight);
+	const size = window.innerWidth < 700 ? 8 : 16;
+	t.fontSize(size);
+	labelLayer.fontSize(size);
 });
