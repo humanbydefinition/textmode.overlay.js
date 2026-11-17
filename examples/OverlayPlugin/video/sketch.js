@@ -1,6 +1,5 @@
 /**
  * @title OverlayPlugin.video
- * @author humanbydefinition
  */
 
 const feed = document.createElement('canvas');

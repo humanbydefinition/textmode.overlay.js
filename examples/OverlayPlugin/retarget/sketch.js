@@ -1,6 +1,5 @@
 /**
  * @title OverlayPlugin.retarget
- * @author humanbydefinition
  */
 
 const targets = [document.createElement('canvas'), document.createElement('canvas')];
