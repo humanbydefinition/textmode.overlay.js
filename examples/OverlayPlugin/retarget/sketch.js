@@ -55,15 +55,16 @@ t.draw(() => {
 
 function drawLabel(lines) {
 	const { cols, rows } = labelLayer.grid;
-	const left = -Math.floor(cols / 2);
+	const left = -Math.floor((cols - 1) / 2);
 	const top = -Math.floor(rows / 2);
 	const width = Math.max(...lines.map(([text]) => text.length)) + 2;
-	t.push();
-	t.translate(left + (width + 4) / 2, top + (lines.length + 5) / 2);
+	t.printAlign('left', 'top');
 	t.cellColor(6, 10, 22);
+	t.push();
+	t.translate(left + (width + 3) / 2, top + (lines.length + 5) / 2);
+	t.char(' ');
 	t.rect(width, lines.length + 2);
 	t.pop();
-	t.printAlign('left', 'top');
 	lines.forEach(([text, color], index) => {
 		t.charColor(...color);
 		t.print(text, left + 3, top + 3 + index);
